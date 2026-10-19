@@ -13,7 +13,7 @@ import {
   type TurretsAutomationResponse,
   type TurretsDeployment,
   type TurretsExecutionHistory,
-} from "../lib/turrets";
+} from "@/lib/turrets";
 
 const OWNER = "GBRPYHIL2CI3FNIDTANYQ7BACEGIA63POASRMHWDHMV65QHJTWCTBYOO";
 const SIGNER = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";

@@ -8,6 +8,20 @@ export default defineConfig([
     rules: {
       "react-hooks/set-state-in-effect": "off",
       "import/no-anonymous-default-export": "off",
+      // Use the "@/" alias (see tsconfig.json "paths") instead of climbing
+      // directories with "../". Same-directory "./" imports are fine.
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["../*", "../**"],
+              message:
+                'Use the "@/" alias for internal imports (e.g. "@/lib/stellar") instead of relative "../" paths.',
+            },
+          ],
+        },
+      ],
     },
   },
   {

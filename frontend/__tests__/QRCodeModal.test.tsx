@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import QRCodeModal from '../components/QRCodeModal';
+import QRCodeModal from '@/components/QRCodeModal';
 
 describe('QRCodeModal snapshot tests', () => {
   const defaultProps = {

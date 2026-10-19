@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import SendPaymentForm from '../components/SendPaymentForm';
+import SendPaymentForm from '@/components/SendPaymentForm';
 
 // Mock the stellar lib module
 jest.mock('@/lib/stellar', () => ({

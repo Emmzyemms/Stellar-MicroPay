@@ -35,7 +35,7 @@ import {
   validateAmount,
   getUserLocale,
   getUserTimezone,
-} from '../utils/intlFormatters';
+} from '@/utils/intlFormatters';
 
 describe('intlFormatters', () => {
   describe('Number Formatting', () => {

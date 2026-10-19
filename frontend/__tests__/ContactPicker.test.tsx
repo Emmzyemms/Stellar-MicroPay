@@ -8,8 +8,8 @@
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import ContactPickerModal from "../components/ContactPickerModal";
-import SendPaymentForm from "../components/SendPaymentForm";
+import ContactPickerModal from "@/components/ContactPickerModal";
+import SendPaymentForm from "@/components/SendPaymentForm";
 
 jest.mock("@/lib/stellar", () => ({
   buildPaymentTransaction: jest.fn(),

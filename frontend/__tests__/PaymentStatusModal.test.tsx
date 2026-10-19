@@ -308,4 +308,4 @@ describe("PaymentStatusModal keyboard behavior & accessibility", () => {
 
     expect(trigger).toHaveFocus();
   });
-});
+});
