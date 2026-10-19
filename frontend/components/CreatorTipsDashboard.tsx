@@ -5,7 +5,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { formatXLM, shortenAddress, formatUSD } from "@/utils/format";
+import { shortenAddress } from "@/utils/format";
+import {
+  formatDate,
+  formatNumber,
+  formatUSD,
+} from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface TipRecord {
   id: number;
@@ -37,6 +43,7 @@ export default function CreatorTipsDashboard({
   username,
   xlmPrice,
 }: CreatorTipsDashboardProps) {
+  const { t } = useTranslation();
   const [tips, setTips] = useState<TipRecord[]>([]);
   const [stats, setStats] = useState<TipsStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,28 +77,17 @@ export default function CreatorTipsDashboard({
       }
     } catch (err) {
       console.error("Error fetching tips:", err);
-      setError("Unable to load tips. Make sure you have a registered username.");
+      setError(t("creatorTips.loadError"));
       setTips([]);
     } finally {
       setLoading(false);
     }
-  }, [publicKey, page]);
+  }, [publicKey, page, t]);
 
   useEffect(() => {
     fetchTips();
   }, [fetchTips]);
 
-
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getTotalXLMReceived = () => {
     if (!stats?.totalByAsset?.XLM) return "0";
@@ -106,17 +102,17 @@ export default function CreatorTipsDashboard({
             <UserIcon className="w-6 h-6 text-amber-400" />
           </div>
           <h3 className="font-display text-lg font-semibold text-white mb-2">
-            Set Up Your Creator Profile
+            {t("creatorTips.setupProfile")}
           </h3>
           <p className="text-sm text-slate-400 mb-4">
-            Register a username to enable public tip pages and track tips received.
+            {t("creatorTips.registerPrompt")}
           </p>
           <Link
             href="/settings"
             className="inline-flex items-center gap-2 bg-stellar-500 hover:bg-stellar-600 text-white font-medium text-sm py-2 px-4 rounded-lg transition-colors"
           >
             <UserIcon className="w-4 h-4" />
-            Register Username
+            {t("creatorTips.registerUsername")}
           </Link>
         </div>
       </div>
@@ -129,34 +125,34 @@ export default function CreatorTipsDashboard({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card bg-gradient-to-br from-stellar-500/10 to-transparent border-stellar-500/20">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
-            Total Tips Received
+            {t("creatorTips.totalTips")}
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {stats?.totalTips ?? 0}
+            {stats ? formatNumber(stats.totalTips, "XLM", { maximumFractionDigits: 0 }) : "0"}
           </p>
         </div>
 
         <div className="card bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
-            Total XLM Received
+            {t("creatorTips.totalXlm")}
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {getTotalXLMReceived()}
+            {formatNumber(getTotalXLMReceived(), "XLM")}
             <span className="text-stellar-400 text-lg ml-1">XLM</span>
           </p>
           {xlmPrice && parseFloat(getTotalXLMReceived()) > 0 && (
             <p className="text-xs text-emerald-400 mt-1">
-              ≈ {formatUSD(parseFloat(getTotalXLMReceived()) * xlmPrice)}
+              {formatUSD(parseFloat(getTotalXLMReceived()) * xlmPrice)}
             </p>
           )}
         </div>
 
         <div className="card bg-gradient-to-br from-violet-500/10 to-transparent border-violet-500/20">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500 mb-1">
-            Average Tip
+            {t("creatorTips.averageTip")}
           </p>
           <p className="font-display text-2xl font-bold text-white">
-            {stats?.averageTip ? parseFloat(stats.averageTip).toFixed(2) : "0"}
+            {formatNumber(stats?.averageTip ?? 0, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             <span className="text-stellar-400 text-lg ml-1">XLM</span>
           </p>
         </div>
@@ -167,10 +163,10 @@ export default function CreatorTipsDashboard({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="font-display text-lg font-semibold text-white">
-              Your Public Tip Page
+              {t("creatorTips.yourTipPage")}
             </h3>
             <p className="text-sm text-slate-400">
-              Share this link with your fans to receive tips
+              {t("creatorTips.shareLink")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -183,7 +179,7 @@ export default function CreatorTipsDashboard({
                 navigator.clipboard.writeText(url);
               }}
               className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              title="Copy link"
+              title={t("creatorTips.copyLink")}
             >
               <CopyIcon className="w-4 h-4" />
             </button>
@@ -195,14 +191,14 @@ export default function CreatorTipsDashboard({
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-display text-lg font-semibold text-white">
-            Tips Received
+            {t("creatorTips.tipsReceived")}
           </h3>
           <button
             onClick={fetchTips}
             className="text-xs text-stellar-400 hover:text-stellar-300 transition-colors flex items-center gap-1"
           >
             <RefreshIcon className="w-3 h-3" />
-            Refresh
+            {t("creatorTips.refresh")}
           </button>
         </div>
 
@@ -221,9 +217,9 @@ export default function CreatorTipsDashboard({
             <div className="mx-auto w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mb-3">
               <GiftIcon className="w-6 h-6 text-slate-500" />
             </div>
-            <p className="text-slate-400 text-sm">No tips received yet</p>
+            <p className="text-slate-400 text-sm">{t("creatorTips.emptyTitle")}</p>
             <p className="text-xs text-slate-500 mt-1">
-              Share your tip page to start receiving tips!
+              {t("creatorTips.emptyHint")}
             </p>
           </div>
         ) : (
@@ -243,13 +239,13 @@ export default function CreatorTipsDashboard({
                         {tip.amount} {tip.asset}
                       </p>
                       <p className="text-xs text-slate-500">
-                        From: {shortenAddress(tip.senderPublicKey)}
+                        {t("creatorTips.from", { address: shortenAddress(tip.senderPublicKey) })}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500">
-                      {formatTimestamp(tip.timestamp)}
+                      {formatDate(tip.timestamp)}
                     </p>
                     {tip.memo && (
                       <p className="text-xs text-slate-400 mt-1 max-w-[200px] truncate">
@@ -269,17 +265,20 @@ export default function CreatorTipsDashboard({
                   disabled={page === 0}
                   className="text-sm text-stellar-400 hover:text-stellar-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
                 >
-                  ← Previous
+                  {t("creatorTips.previous")}
                 </button>
                 <span className="text-xs text-slate-500">
-                  Page {page + 1} of {Math.ceil(stats.totalTips / pageSize)}
+                  {t("creatorTips.pageOf", {
+                    current: page + 1,
+                    total: Math.ceil(stats.totalTips / pageSize),
+                  })}
                 </span>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={(page + 1) * pageSize >= stats.totalTips}
                   className="text-sm text-stellar-400 hover:text-stellar-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
                 >
-                  Next →
+                  {t("creatorTips.next")}
                 </button>
               </div>
             )}

@@ -100,4 +100,68 @@ describe("Dashboard internationalisation", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Recent Activity")).not.toBeInTheDocument();
   });
+
+  it("renders French when the stored locale is fr (#1455)", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "fr");
+
+    render(
+      <I18nProvider>
+        <Dashboard />
+      </I18nProvider>
+    );
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Tableau de bord" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Envoie et reçois des XLM dans le monde entier")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Adresse du portefeuille")).toBeInTheDocument();
+    expect(screen.getByText("Activité récente")).toBeInTheDocument();
+    expect(screen.queryByText("Recent Activity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Dashboard")).not.toBeInTheDocument();
+  });
+
+  it("renders German when the stored locale is de (#1457)", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "de");
+
+    render(
+      <I18nProvider>
+        <Dashboard />
+      </I18nProvider>
+    );
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Dashboard" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Sende und empfange XLM weltweit")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Wallet-Adresse")).toBeInTheDocument();
+    expect(screen.getByText("Letzte Aktivität")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Send and receive XLM globally")
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Recent Activity")).not.toBeInTheDocument();
+  });
+
+  it("renders Brazilian Portuguese when the stored locale is pt-BR (#1456)", async () => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, "pt-BR");
+
+    render(
+      <I18nProvider>
+        <Dashboard />
+      </I18nProvider>
+    );
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Painel" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Envie e receba XLM globalmente")
+    ).toBeInTheDocument();
+    expect(screen.getByText("Endereço da carteira")).toBeInTheDocument();
+    expect(screen.getByText("Atividade recente")).toBeInTheDocument();
+    expect(screen.queryByText("Recent Activity")).not.toBeInTheDocument();
+  });
 });

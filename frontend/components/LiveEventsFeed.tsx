@@ -14,7 +14,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatAsset, shortenAddress, timeAgo } from "@/utils/format";
+import { type Translate } from "@/lib/i18n";
+import { useTranslation } from "@/contexts/I18nContext";
+import {
+  formatAsset,
+  formatNumber,
+  formatRelativeTime,
+  formatTime,
+  shortenAddress,
+} from "@/utils/intlFormatters";
 
 /** A normalised contract event as delivered by the backend. */
 export interface ContractEvent {
@@ -70,14 +78,15 @@ const EVENT_TYPE_STYLES: Record<string, string> = {
   refund: "bg-rose-500/15 text-rose-300 border-rose-500/30",
 };
 
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  open: "Open",
-  claim: "Claim",
-  top_up: "Top up",
-  close: "Close",
-  tip: "Tip",
-  receipt: "Receipt",
-  refund: "Refund",
+/** Translation key per event type; unknown types fall back to a readable label. */
+const EVENT_TYPE_KEYS: Record<string, string> = {
+  open: "liveEvents.typeOpen",
+  claim: "liveEvents.typeClaim",
+  top_up: "liveEvents.typeTopUp",
+  close: "liveEvents.typeClose",
+  tip: "liveEvents.typeTip",
+  receipt: "liveEvents.typeReceipt",
+  refund: "liveEvents.typeRefund",
 };
 
 export function resolveApiBaseUrl(override?: string): string {
@@ -101,8 +110,9 @@ export function mergeEvent(
   return [incoming, ...existing].slice(0, maxEvents);
 }
 
-export function eventTypeLabel(type: string): string {
-  return EVENT_TYPE_LABELS[type] ?? type.replace(/_/g, " ");
+export function eventTypeLabel(type: string, t: Translate): string {
+  const key = EVENT_TYPE_KEYS[type];
+  return key ? t(key) : type.replace(/_/g, " ");
 }
 
 function truncateHash(hash: string): string {
@@ -129,24 +139,20 @@ function StatusDot({ state }: { state: ConnectionState }) {
   return <span className={`w-2 h-2 rounded-full ${colour}`} aria-hidden="true" />;
 }
 
-function statusLabel(state: ConnectionState): string {
-  switch (state) {
-    case "live":
-      return "Live";
-    case "reconnecting":
-      return "Reconnecting…";
-    case "unsupported":
-      return "Streaming not supported in this browser";
-    default:
-      return "Connecting…";
-  }
-}
+/** Translation key per connection state, for the status line. */
+const STATUS_LABEL_KEYS: Record<ConnectionState, string> = {
+  connecting: "liveEvents.statusConnecting",
+  live: "liveEvents.statusLive",
+  reconnecting: "liveEvents.statusReconnecting",
+  unsupported: "liveEvents.statusUnsupported",
+};
 
 export default function LiveEventsFeed({
   apiBaseUrl,
   maxEvents = DEFAULT_MAX_EVENTS,
   className = "",
 }: LiveEventsFeedProps) {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<ContractEvent[]>([]);
   const [state, setState] = useState<ConnectionState>("connecting");
   const [notice, setNotice] = useState<string | null>(null);
@@ -285,10 +291,10 @@ export default function LiveEventsFeed({
             id="live-events-heading"
             className="font-display text-lg font-semibold text-white"
           >
-            Live Events
+            {t("liveEvents.title")}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Soroban contract activity streamed from the events API
+            {t("liveEvents.subtitle")}
             {network ? ` · ${network}` : ""}
           </p>
         </div>
@@ -300,14 +306,14 @@ export default function LiveEventsFeed({
             aria-live="polite"
           >
             <StatusDot state={state} />
-            {statusLabel(state)}
+            {t(STATUS_LABEL_KEYS[state])}
           </span>
           <button
             type="button"
             onClick={handleReconnect}
             className="text-xs text-stellar-400 hover:text-stellar-300 transition-colors cursor-pointer"
           >
-            Reconnect
+            {t("liveEvents.reconnect")}
           </button>
         </div>
       </div>
@@ -323,20 +329,19 @@ export default function LiveEventsFeed({
 
       {state === "connecting" && events.length === 0 && (
         <p className="text-sm text-slate-500" role="status" aria-busy="true">
-          Connecting to the event stream…
+          {t("liveEvents.connecting")}
         </p>
       )}
 
       {state === "unsupported" && (
         <p className="text-sm text-slate-500">
-          This browser does not support server-sent events, so the live feed is
-          unavailable.
+          {t("liveEvents.unsupported")}
         </p>
       )}
 
       {state !== "connecting" && events.length === 0 && state !== "unsupported" && (
         <p className="text-sm text-slate-500">
-          Waiting for the first contract event…
+          {t("liveEvents.waiting")}
         </p>
       )}
 
@@ -353,7 +358,7 @@ export default function LiveEventsFeed({
                   "bg-white/5 text-slate-300 border-white/10"
                 }`}
               >
-                {eventTypeLabel(event.type)}
+                {eventTypeLabel(event.type, t)}
               </span>
 
               <span className="font-mono text-xs text-slate-300">
@@ -367,7 +372,9 @@ export default function LiveEventsFeed({
               </span>
 
               <span className="text-xs text-slate-500">
-                Ledger #{event.ledger.toLocaleString("en-US")}
+                {t("liveEvents.ledger", {
+                  ledger: formatNumber(event.ledger, "XLM", { maximumFractionDigits: 0 }),
+                })}
               </span>
 
               <span className="ml-auto flex items-center gap-3 text-[11px] text-slate-500">
@@ -376,7 +383,7 @@ export default function LiveEventsFeed({
                     {truncateHash(event.transactionHash)}
                   </span>
                 )}
-                <span>{event.closedAt ? timeAgo(event.closedAt) : "—"}</span>
+                <span>{event.closedAt ? formatRelativeTime(event.closedAt) : "—"}</span>
               </span>
             </li>
           ))}
@@ -385,7 +392,7 @@ export default function LiveEventsFeed({
 
       {lastUpdatedAt && (
         <p className="mt-3 text-[11px] text-slate-600">
-          Last event received {lastUpdatedAt.toLocaleTimeString()}
+          {t("liveEvents.lastEvent", { time: formatTime(lastUpdatedAt) })}
         </p>
       )}
     </section>

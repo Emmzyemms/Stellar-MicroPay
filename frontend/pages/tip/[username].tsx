@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import TipWidget from "@/components/TipWidget";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface ResolvedAccount {
   username: string;
@@ -16,7 +17,9 @@ type ResolveState =
   | { status: "error"; message: string };
 
 export default function TipPage() {
+  const { t } = useTranslation();
   const router = useRouter();
+  const { t } = useTranslation();
   const routeUsername = useMemo(() => {
     const raw = router.query.username;
     return typeof raw === "string" ? raw : null;
@@ -30,7 +33,7 @@ export default function TipPage() {
     if (!routeUsername) {
       setResolveState({
         status: "not-found",
-        message: "We could not figure out which creator tip page you were trying to open.",
+        message: t("tipPage.missingUsernameMessage"),
       });
       return;
     }
@@ -40,7 +43,7 @@ export default function TipPage() {
 
     setResolveState({
       status: "loading",
-      message: `Looking up @${routeUsername}...`,
+      message: t("tipPage.lookingUp", { username: routeUsername }),
     });
 
     fetch(`${apiBase}/api/accounts/resolve/${encodeURIComponent(routeUsername)}`)
@@ -50,20 +53,20 @@ export default function TipPage() {
         if (response.status === 404) {
           throw new ResolveError(
             "not-found",
-            payload?.error || `@${routeUsername} does not have a public tip page yet.`
+            payload?.error || t("tipPage.noPublicPage", { username: routeUsername })
           );
         }
 
         if (!response.ok) {
           throw new ResolveError(
             "error",
-            payload?.error || "We could not load this tip page right now."
+            payload?.error || t("tipPage.loadFailed")
           );
         }
 
         const account = payload?.data;
         if (!payload?.success || !account?.publicKey || !account?.username) {
-          throw new ResolveError("error", "The tip page response was incomplete.");
+          throw new ResolveError("error", t("tipPage.incompleteResponse"));
         }
 
         return {
@@ -85,21 +88,25 @@ export default function TipPage() {
 
         setResolveState({
           status: "error",
-          message: "Something went wrong while loading this creator. Please try again.",
+          message: t("tipPage.genericError"),
         });
       });
 
     return () => {
       isActive = false;
     };
-  }, [routeUsername, router.isReady]);
+  }, [routeUsername, router.isReady, t]);
 
-  const pageTitle =
+  const displayName =
     resolveState.status === "ready"
-      ? `Tip @${resolveState.account.username} | Stellar MicroPay`
+      ? `@${resolveState.account.username}`
       : routeUsername
-        ? `Tip @${routeUsername} | Stellar MicroPay`
-        : "Tip Creator | Stellar MicroPay";
+        ? `@${routeUsername}`
+        : null;
+
+  const pageTitle = displayName
+    ? t("pages.tip.title", { username: displayName })
+    : t("pages.tip.fallbackTitle");
 
   const ogUsername =
     resolveState.status === "ready" ? resolveState.account.username : routeUsername || "creator";
@@ -122,12 +129,12 @@ export default function TipPage() {
 
         <div className="relative mx-auto max-w-6xl">
           {resolveState.status === "loading" && (
-            <LoadingState message={resolveState.message || "Loading tip page..."} />
+            <LoadingState message={resolveState.message || t("tipPage.loadingFallback")} />
           )}
 
           {resolveState.status === "not-found" && (
             <FriendlyErrorState
-              title="Creator not found"
+              title={t("tipPage.notFoundTitle")}
               message={resolveState.message}
               accent="amber"
             />
@@ -135,7 +142,7 @@ export default function TipPage() {
 
           {resolveState.status === "error" && (
             <FriendlyErrorState
-              title="Tip page unavailable"
+              title={t("tipPage.errorTitle")}
               message={resolveState.message}
               accent="red"
             />
@@ -191,6 +198,7 @@ function FriendlyErrorState({
   message: string;
   accent: "amber" | "red";
 }) {
+  const { t } = useTranslation();
   const accentClasses =
     accent === "amber"
       ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
@@ -207,14 +215,14 @@ function FriendlyErrorState({
 
       <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
         <Link href="/" className="btn-primary px-8 py-3">
-          Back to home
+          {t("tipPage.backToHome")}
         </Link>
         <button
           type="button"
           onClick={() => window.history.back()}
           className="btn-secondary px-8 py-3"
         >
-          Go back
+          {t("tipPage.goBack")}
         </button>
       </div>
     </div>

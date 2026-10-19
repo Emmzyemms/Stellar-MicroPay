@@ -26,14 +26,14 @@ import { copyToClipboard } from "@/utils/format";
 
 /** Nav entries carry an i18n key so labels follow the active locale (#1145). */
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/trade", label: "Trade" },
-  { href: "/scheduled-payments", label: "Scheduled" },
-  { href: "/transactions", label: "Transactions" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/network", label: "Network" },
-  { href: "/settings", label: "Settings" },
+  { href: "/", labelKey: "navbar.home" },
+  { href: "/dashboard", labelKey: "navbar.dashboard" },
+  { href: "/trade", labelKey: "navbar.trade" },
+  { href: "/scheduled-payments", labelKey: "navbar.scheduled" },
+  { href: "/transactions", labelKey: "navbar.transactions" },
+  { href: "/leaderboard", labelKey: "navbar.leaderboard" },
+  { href: "/network", labelKey: "navbar.network" },
+  { href: "/settings", labelKey: "navbar.settings" },
 ];
 
 export interface NavbarProps {
@@ -87,7 +87,11 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
   const config = getNetworkConfig();
   const isMainnet = config.network === "mainnet";
   const networkLabel =
-    config.network === "custom" ? "Custom" : isMainnet ? "Mainnet" : "Testnet";
+    config.network === "custom"
+      ? t("settings.network.custom")
+      : isMainnet
+        ? t("settings.network.mainnet")
+        : t("settings.network.testnet");
   const networkBadgeClassName =
     config.network === "custom"
       ? "border-purple-400/35 bg-purple-400/10 text-purple-300"
@@ -231,8 +235,8 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
 
           {feeLevel && (
             <span
-              title={`Network: ${feeLevel.charAt(0).toUpperCase()}${feeLevel.slice(1)}`}
-              aria-label={`Network fee status: ${feeLevel}`}
+              title={t("navbar.networkFeeTitle", { level: feeLevel.charAt(0).toUpperCase() + feeLevel.slice(1) })}
+              aria-label={t("navbar.networkFeeStatus", { level: feeLevel })}
               className={clsx(
                 "hidden h-2.5 w-2.5 rounded-full border transition-colors md:inline-block",
                 feeLevel === "normal" && "border-emerald-400/50 bg-emerald-400",
@@ -254,7 +258,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200"
                 )}
               >
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             ))}
           </div>
@@ -264,12 +268,12 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
           {onOpenAssistant && (
             <button
               onClick={onOpenAssistant}
-              title="Open AI payment assistant (Cmd+K / Ctrl+K)"
-              aria-label="Open AI payment assistant. Keyboard shortcut: Command K on Mac, Control K on Windows and Linux."
+              title={t("navbar.openAssistantTitle")}
+              aria-label={t("navbar.openAssistantLabel")}
               className="hidden h-9 items-center gap-1.5 rounded-lg border border-stellar-500/20 bg-stellar-500/5 px-3 text-xs font-medium text-stellar-400 transition-colors hover:bg-stellar-500/10 md:flex"
             >
               <SparkleIcon className="h-3.5 w-3.5" />
-              Ask AI
+              {t("navbar.askAi")}
               <kbd className="ml-1 hidden select-none rounded border border-stellar-500/20 bg-stellar-500/10 px-1 py-0.5 font-mono text-[10px] md:inline">
                 &#8984;K
               </kbd>
@@ -279,7 +283,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
           <button
             onClick={toggleTheme}
             aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+              theme === "dark" ? t("navbar.switchToLightMode") : t("navbar.switchToDarkMode")
             }
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300/30 bg-white/90 text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-100 dark:border-slate-600/30 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700/80"
           >
@@ -289,7 +293,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
           {publicKey ? (
             <div className="flex min-w-0 items-center gap-2">
               <kbd
-                title="Press Ctrl+K / Cmd+K to quick-send"
+                title={t("navbar.quickSendTitle")}
                 className="hidden select-none items-center gap-1 rounded-md border border-stellar-500/20 bg-stellar-500/5 px-2 py-1 font-mono text-xs text-stellar-400 md:inline-flex"
               >
                 Ctrl+K
@@ -300,8 +304,8 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
                 <span>{shortenAddress(publicKey)}</span>
                 <button
                   onClick={handleCopyAddress}
-                  aria-label="Copy wallet address"
-                  title="Copy wallet address"
+                  aria-label={t("navbar.copyAddress")}
+                  title={t("navbar.copyAddress")}
                   className="flex cursor-pointer items-center justify-center rounded p-0.5 text-slate-400 transition-colors hover:text-white"
                 >
                   {copied ? (
@@ -315,13 +319,13 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
                     className="absolute -bottom-8 left-1/2 -translate-x-1/2 rounded border border-emerald-400/20 bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-emerald-400 shadow-md"
                     role="status"
                   >
-                    Copied!
+                    {t("common.copied")}
                   </span>
                 )}
               </div>
               <button
                 onClick={() => setShowDisconnectConfirm(true)}
-                aria-label="Show disconnect confirmation"
+                aria-label={t("navbar.showDisconnectConfirm")}
                 className="shrink-0 px-2 py-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
               >
                 {t("navbar.disconnect")}
@@ -362,7 +366,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-nav-drawer"
             aria-label={
-              isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+              isMobileMenuOpen ? t("navbar.closeMenu") : t("navbar.openMenu")
             }
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300/30 bg-white/90 text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-100 md:hidden dark:border-slate-600/30 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700/80"
           >
@@ -377,7 +381,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
           ref={drawerRef}
           role="dialog"
           aria-modal="true"
-          aria-label="Site navigation"
+          aria-label={t("navbar.siteNavigation")}
           className="border-t border-[rgba(14,165,233,0.12)] bg-white/95 backdrop-blur-xl animate-slide-down md:hidden dark:bg-cosmos-900/95"
         >
           <ul className="mx-auto flex max-w-6xl flex-col px-4 py-2 sm:px-6">
@@ -395,7 +399,7 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200"
                   )}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               </li>
             ))}

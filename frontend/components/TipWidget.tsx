@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import SendPaymentForm from "@/components/SendPaymentForm";
 import WalletConnect from "@/components/WalletConnect";
 import { getXLMBalance, shortenAddress } from "@/lib/stellar";
-import { formatXLM } from "@/utils/format";
+import { formatXLM } from "@/utils/intlFormatters";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface TipWidgetProps {
   creatorUsername: string;
@@ -23,9 +24,10 @@ export default function TipWidget({
   creatorUsername,
   destination,
 }: TipWidgetProps) {
+  const { t } = useTranslation();
   const shareUrl = `https://stellarmicropay.com/tip/${encodeURIComponent(creatorUsername)}`;
   const shareOnX = () => {
-    const text = `Send me a tip with Stellar MicroPay! ⚡ ${shareUrl}`;
+    const text = t("tipWidget.shareText", { url: shareUrl });
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
   const { publicKey } = useWallet();
@@ -126,19 +128,18 @@ export default function TipWidget({
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-stellar-300/80">
-                Public tip page
+                {t("tipWidget.publicTipPage")}
               </p>
               <h1 className="mt-3 font-display text-3xl font-bold text-white">
-                Tip @{creatorUsername}
+                {t("tipWidget.tipTitle", { username: creatorUsername })}
               </h1>
               <p className="mt-2 max-w-xl text-sm leading-7 text-slate-300">
-                Send a fast XLM tip straight to this creator&apos;s Stellar wallet. Pick a preset or
-                choose your own amount, then confirm in Freighter.
+                {t("tipWidget.description")}
               </p>
             </div>
 
             <div className="rounded-2xl border border-stellar-500/20 bg-stellar-500/10 px-4 py-3 text-sm text-stellar-100">
-              <p className="text-xs uppercase tracking-[0.2em] text-stellar-300/80">Wallet</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-stellar-300/80">{t("tipWidget.wallet")}</p>
               <p className="mt-1 font-mono text-sm text-white" title={destination}>
                 {shortenAddress(destination)}
               </p>
@@ -146,11 +147,11 @@ export default function TipWidget({
             <button
               type="button"
               onClick={shareOnX}
-              aria-label="Share this tip page on X"
+              aria-label={t("tipWidget.shareAria")}
               className="inline-flex items-center gap-2 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <span aria-hidden="true" className="text-base">𝕏</span>
-              Share on X
+              {t("tipWidget.shareOnX")}
             </button>
           </div>
         </section>
@@ -159,14 +160,14 @@ export default function TipWidget({
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="font-display text-xl font-semibold text-white">Choose a tip</h2>
+                <h2 className="font-display text-xl font-semibold text-white">{t("tipWidget.chooseTip")}</h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Fixed presets from the issue spec, plus any custom XLM amount you want.
+                  {t("tipWidget.presetsHint")}
                 </p>
               </div>
               <div className="hidden sm:flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300">
                 <SparkIcon className="h-3.5 w-3.5" />
-                No account required to view
+                {t("tipWidget.noAccountRequired")}
               </div>
             </div>
 
@@ -186,7 +187,7 @@ export default function TipWidget({
                         : "border-white/10 bg-cosmos-950/40 text-slate-200 hover:border-stellar-400/50 hover:bg-white/[0.05]"
                     )}
                   >
-                    <span className="block text-sm font-semibold">{tip.label} tip</span>
+                    <span className="block text-sm font-semibold">{t("tipWidget.presetTip", { label: tip.label })}</span>
                     <span className="mt-1 block font-display text-2xl text-white">
                       {tip.amount}
                       <span className="ml-1 text-base text-stellar-300">XLM</span>
@@ -198,7 +199,7 @@ export default function TipWidget({
 
             <div className="mt-6">
               <label htmlFor="tip-amount" className="label">
-                Custom amount
+                {t("tipWidget.customAmount")}
               </label>
               <div className="relative mt-2">
                 <input
@@ -217,7 +218,7 @@ export default function TipWidget({
               </div>
               {!hasValidAmount && (
                 <p className="mt-2 text-sm text-amber-300">
-                  Enter at least 0.0000001 XLM to continue.
+                  {t("tipWidget.minAmount")}
                 </p>
               )}
             </div>
@@ -225,26 +226,28 @@ export default function TipWidget({
             <div className="mt-6 rounded-2xl border border-white/10 bg-cosmos-950/50 px-4 py-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Selected tip</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{t("tipWidget.selectedTip")}</p>
                   <p className="mt-2 font-display text-3xl font-semibold text-white">
                     {hasValidAmount ? formatXLM(parsedAmount) : "0 XLM"}
                   </p>
                   <p className="mt-2 text-sm text-slate-400">
-                    Recipient: <span className="font-semibold text-slate-200">@{creatorUsername}</span>
+                    {t("tipWidget.recipient")} <span className="font-semibold text-slate-200">@{creatorUsername}</span>
                   </p>
                 </div>
 
                 {publicKey ? (
                   <div className="text-right">
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Connected wallet</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{t("tipWidget.connectedWallet")}</p>
                     <p className="mt-2 font-mono text-sm text-slate-200">{shortenAddress(publicKey)}</p>
                     <p className="mt-2 text-xs text-slate-500">
-                      {isBalanceLoading ? "Checking balance..." : `Balance: ${formatXLM(xlmBalance)}`}
+                      {isBalanceLoading
+                        ? t("tipWidget.checkingBalance")
+                        : t("tipWidget.balance", { balance: formatXLM(xlmBalance) })}
                     </p>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-right text-xs text-amber-200">
-                    Connect only when you are ready to send
+                    {t("tipWidget.connectWhenReady")}
                   </div>
                 )}
               </div>
@@ -258,7 +261,9 @@ export default function TipWidget({
                 className="btn-primary mt-6 flex w-full items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <WalletIcon className="h-4 w-4" />
-                {hasValidAmount ? `Connect wallet to tip ${formatXLM(parsedAmount)}` : "Enter an amount"}
+                {hasValidAmount
+                  ? t("tipWidget.connectToTip", { amount: formatXLM(parsedAmount) })
+                  : t("tipWidget.enterAmount")}
               </button>
             )}
           </div>
@@ -266,9 +271,11 @@ export default function TipWidget({
           <div className="space-y-5">
             {showCelebration && (
               <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 px-5 py-4 text-emerald-100 animate-slide-up">
-                <p className="font-display text-lg font-semibold">Tip sent to @{creatorUsername}</p>
+                <p className="font-display text-lg font-semibold">
+                  {t("tipWidget.tipSentTo", { username: creatorUsername })}
+                </p>
                 <p className="mt-1 text-sm text-emerald-100/80">
-                  Your support is on the way, and the confetti is doing its job.
+                  {t("tipWidget.supportOnWay")}
                 </p>
               </div>
             )}
@@ -277,8 +284,10 @@ export default function TipWidget({
               <div ref={connectPromptRef} className="rounded-3xl border border-stellar-500/20 bg-white/[0.03] p-1">
                 <div className="rounded-[22px] border border-white/10 bg-cosmos-950/50 p-5">
                   <p className="text-sm text-slate-400 mb-4">
-                    Connect your wallet to send {hasValidAmount ? formatXLM(parsedAmount) : "this tip"} to
-                    {" "}@{creatorUsername}.
+                    {t("tipWidget.connectPrompt", {
+                      amount: hasValidAmount ? formatXLM(parsedAmount) : t("tipWidget.thisTip"),
+                      username: creatorUsername,
+                    })}
                   </p>
                   <WalletConnect onConnectSuccess={handleConnect} />
                 </div>
@@ -289,8 +298,10 @@ export default function TipWidget({
               <div className="space-y-4">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4">
                   <p className="text-sm text-slate-300">
-                    You are tipping <span className="font-semibold text-white">@{creatorUsername}</span> at{" "}
-                    <span className="font-mono text-slate-200">{shortenAddress(destination)}</span>.
+                    {t("tipWidget.youAreTipping", {
+                      username: `@${creatorUsername}`,
+                      address: shortenAddress(destination),
+                    })}
                   </p>
                 </div>
 
@@ -300,10 +311,18 @@ export default function TipWidget({
                   xlmBalance={xlmBalance}
                   onSuccess={handleSuccess}
                   prefill={{ destination, amount }}
-                  title={`Send a tip to @${creatorUsername}`}
-                  submitLabel={hasValidAmount ? `Send ${formatXLM(parsedAmount)} tip` : "Send tip"}
-                  successTitle={`Tip sent to @${creatorUsername}!`}
-                  successMessage={hasValidAmount ? `${formatXLM(parsedAmount)} is on the way.` : undefined}
+                  title={t("tipWidget.sendTipTitle", { username: creatorUsername })}
+                  submitLabel={
+                    hasValidAmount
+                      ? t("tipWidget.sendTipSubmit", { amount: formatXLM(parsedAmount) })
+                      : t("tipWidget.sendTip")
+                  }
+                  successTitle={t("tipWidget.sendTipSuccessTitle", { username: creatorUsername })}
+                  successMessage={
+                    hasValidAmount
+                      ? t("tipWidget.sendTipSuccessMessage", { amount: formatXLM(parsedAmount) })
+                      : undefined
+                  }
                   assetOptions={["XLM"]}
                   hideAssetSelector
                   hideDestinationField

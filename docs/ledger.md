@@ -6,31 +6,28 @@ This document describes the implementation of Ledger hardware wallet support for
 ## Implementation Details
 
 ### Dependencies Added
-- `@ledgerhq/hw-app-stellar@^6.3.0` - Stellar app interface for Ledger devices
-- `@ledgerhq/hw-transport-webhid@^6.28.0` - WebHID transport for browser communication
+- `@ledgerhq/hw-app-str` - Stellar app interface for Ledger devices (successor of the unpublished `@ledgerhq/hw-app-stellar`)
+- `@ledgerhq/hw-transport-webusb` - WebUSB transport for browser communication
 
 ### New Functions in `frontend/lib/wallet.ts`
 
 #### `isLedgerSupported()`
-- Checks if WebHID is supported in the browser
-- Tests basic connectivity with a Ledger device
+- Checks if WebUSB is supported in the browser
 - Returns boolean indicating support status
 
-#### `getLedgerPublicKey(accountPath?, confirmOnDevice?)`
-- Connects to Ledger device via WebHID
-- Retrieves public key from specified BIP32 path (default: "44'/148'/0'")
-- Optional device confirmation for enhanced security
-- Handles common error cases:
-  - Device not connected/unlocked
-  - Stellar app not open
-  - User rejection
-  - App not installed
+#### `getLedgerPublicKey()`
+- Connects to the Ledger device via WebUSB
+- Retrieves the public key for BIP32 path `44'/148'/0'`, confirming it on the device
+- Returns `{ publicKey, error, errorCode, errorDetail }` — see [Error Handling](#error-handling-implementation)
 
-#### `signTransactionWithLedger(transactionXDR, accountPath?)`
-- Signs Stellar transactions using Ledger device
-- Uses default BIP32 path "44'/148'/0'"
-- Returns signed transaction XDR
-- Comprehensive error handling for all failure scenarios
+#### `signTransactionWithLedger(transactionXDR)`
+- Signs the transaction's signature base on the Ledger and attaches the
+  signature to the envelope, returning a submittable signed XDR
+- Returns `{ signedXDR, error, errorCode, errorDetail }`
+
+#### `classifyLedgerError(err)` / `isRecoverableLedgerError(code)`
+- Maps any transport, APDU, or WebUSB error to a `LedgerErrorCode`
+- Tells the UI whether the user can fix the problem and retry
 
 ### Updated `frontend/components/WalletConnect.tsx`
 
@@ -43,22 +40,50 @@ This document describes the implementation of Ledger hardware wallet support for
 
 #### State Management
 - `selectedWallet` - tracks which wallet type user is connecting
-- `ledgerSupported` - indicates WebHID/browser compatibility
+- `ledgerSupported` - indicates WebUSB/browser compatibility
 - Separate handlers for each wallet type
 
 #### Error Handling
-- WebHID not supported warning for unsupported browsers
+- WebUSB not supported warning for unsupported browsers
 - Ledger-specific error messages with actionable guidance
 - Maintains existing Freighter error handling
 
 ## Error Handling Implementation
 
-### Ledger Error Codes and Messages
-- **Device not found**: "Ledger device not found. Make sure your Ledger is connected and unlocked."
-- **App not open (6985)**: "Stellar app is not open on your Ledger device. Open the Stellar app and try again."
-- **User rejection (6986)**: "Action rejected on the Ledger device. Please try again."
-- **App not installed (6480)**: "Stellar app is not installed on your Ledger device. Install it from Ledger Live."
-- **WebHID not supported**: "WebHID is not supported in this browser. Use Chrome, Edge, or another Chromium-based browser."
+Hardware wallets fail in more ways than a browser extension does, so Ledger
+errors are not collapsed into one generic "signing failed" message.
+`classifyLedgerError()` in `frontend/lib/wallet.ts` maps each failure to a
+`LedgerErrorCode`, checking the APDU status code first, then the
+`@ledgerhq/errors` class name, then the message text. Each code has a translated
+message and recovery step under `ledgerErrors.<code>.message` /
+`ledgerErrors.<code>.recovery` in every `frontend/locales/*.json` catalog.
+
+| Code | Detected from | Retry offered |
+| --- | --- | --- |
+| `locked` | `LockedDeviceError`, status `0x5515` / `0x6b0c` | Yes |
+| `appNotOpen` | status `0x6511`, `0x6d00`, `0x6e00`, `0x6e01`, `0x6807` (app not installed) | Yes |
+| `rejected` | status `0x6985` / `0x6986` (user declined on device) | Yes |
+| `usbPermissionDenied` | `TransportOpenUserCancelled` (USB chooser dismissed), `TransportInterfaceNotAvailable` (interface claimed by Ledger Live or another tab), `TransportWebUSBGestureRequired`, DOM `NotAllowedError` / `SecurityError` | Yes |
+| `timeout` | `ListenTimeout` transport error, `TimeoutError`, any "timeout" / "timed out" message | Yes |
+| `deviceNotFound` | `NoDeviceFound`, `DisconnectedDevice`, `DisconnectedDeviceDuringOperation` | Yes |
+| `unknown` | Anything else; the raw message is shown as "Ledger error: …" | No |
+
+### Retry flow
+
+- **Connecting** (`WalletConnect`): the error is shown with its recovery step
+  (`components/LedgerErrorNotice.tsx`) and a **Retry** button that runs the
+  connect flow again. SEP-0010 authentication signs the challenge with the
+  Ledger, so device errors during auth show the same notice.
+- **Signing** (`useWallet().signTransaction(xdr)`): when a Ledger session is
+  connected, a recoverable error does not reject straight away. The provider
+  shows the notice with **Retry** and **Cancel**. Retry signs the same XDR
+  again; the caller's promise resolves once signing succeeds, or with the
+  translated error if the user cancels. Unknown errors resolve immediately.
+
+To add a new failure mode, add a code to `LedgerErrorCode`, teach
+`classifyLedgerError()` to detect it, add `ledgerErrors.<code>` to every locale
+(the locale parity test enforces this), and add a case to
+`frontend/__tests__/useWallet.test.tsx`.
 
 ## Testing Plan
 
@@ -66,7 +91,7 @@ This document describes the implementation of Ledger hardware wallet support for
 1. Ledger Nano S/X device
 2. Stellar app installed on Ledger (via Ledger Live)
 3. Chrome, Edge, or other Chromium-based browser
-4. Test environment with HTTPS (required for WebHID)
+4. Test environment with HTTPS (required for WebUSB)
 
 ### Test Cases
 
@@ -88,7 +113,7 @@ This document describes the implementation of Ledger hardware wallet support for
 - [ ] **Stellar app not open**: Error message instructs to open app
 - [ ] **User rejects**: Clear rejection message
 - [ ] **App not installed**: Installation instructions provided
-- [ ] **WebHID not supported**: Browser compatibility warning
+- [ ] **WebUSB not supported**: Browser compatibility warning
 
 #### 4. Transaction Signing
 - [ ] Successfully sign transaction XDR
@@ -110,8 +135,8 @@ This document describes the implementation of Ledger hardware wallet support for
 #### 7. Compatibility Testing
 - [ ] Chrome browser: Full functionality
 - [ ] Edge browser: Full functionality
-- [ ] Firefox browser: WebHID warning, Ledger disabled
-- [ ] Safari browser: WebHID warning, Ledger disabled
+- [ ] Firefox browser: WebUSB warning, Ledger disabled
+- [ ] Safari browser: WebUSB warning, Ledger disabled
 
 ### Manual Testing Steps
 
@@ -144,7 +169,7 @@ This document describes the implementation of Ledger hardware wallet support for
 
 ## Security Considerations
 
-### WebHID Security
+### WebUSB Security
 - Requires HTTPS in production
 - Browser prompts for device permission
 - User must physically approve operations on device
@@ -162,54 +187,70 @@ This document describes the implementation of Ledger hardware wallet support for
 ## Browser Compatibility
 
 ### Supported Browsers
-- Chrome 89+ (full WebHID support)
-- Edge 89+ (full WebHID support)
-- Other Chromium-based browsers (full WebHID support)
+- Chrome 89+ (full WebUSB support)
+- Edge 89+ (full WebUSB support)
+- Other Chromium-based browsers (full WebUSB support)
 
 ### Unsupported Browsers
-- Firefox (WebHID not implemented)
-- Safari (WebHID not implemented)
-- Mobile browsers (limited WebHID support)
+- Firefox (WebUSB not implemented)
+- Safari (WebUSB not implemented)
+- Mobile browsers (limited WebUSB support)
 
 ## Deployment Notes
 
 ### HTTPS Requirement
-WebHID requires secure context in production. Ensure:
+WebUSB requires secure context in production. Ensure:
 - SSL certificate is properly configured
 - All resources load over HTTPS
 - Mixed content issues are resolved
 
 ### CSP Headers
-Update Content Security Policy to allow WebHID:
+Update Content Security Policy to allow WebUSB:
 ```
 connect-src 'self' https:;
-feature: hid 'self';
+feature: usb 'self';
 ```
 
 ## Troubleshooting
 
-### Common Issues
+Each entry matches a message the app shows; the recovery step is shown with it.
 
-**"WebHID not supported"**
-- Use Chrome, Edge, or Chromium browser
-- Ensure HTTPS in production environment
+**"Your Ledger is locked."** (`locked`)
+- Enter your PIN on the device, then click **Retry**.
+- Ledger devices auto-lock after inactivity; this can happen mid-flow.
 
-**"Device not found"**
-- Check USB connection
-- Unlock Ledger device
-- Open Stellar app
+**"The Stellar app is not open on your Ledger."** (`appNotOpen`)
+- Open the Stellar app on the device and wait for "Application is ready", then click **Retry**.
+- If the app is not listed, install it from Ledger Live (Manager / My Ledger).
+- Also shown when a different app (e.g. Bitcoin) is open.
 
-**"App not open"**
-- Navigate to Stellar app on Ledger
-- Wait for app to fully load
+**"The request was rejected on your Ledger."** (`rejected`)
+- The request was declined on the device. Click **Retry** and approve it.
+- If you rejected because the details looked wrong, cancel instead.
 
-**"Transaction signing failed"**
-- Ensure sufficient XLM balance
-- Check network connectivity
-- Verify transaction format
+**"The browser could not access your Ledger over USB."** (`usbPermissionDenied`)
+- Select your Ledger in the browser's USB device prompt and allow access.
+- Close Ledger Live and any other tab using the device; only one app can claim it at a time.
+- On Linux, install Ledger's udev rules so the browser can open the device.
+- WebUSB requires HTTPS (or `localhost`).
+
+**"Your Ledger did not respond in time."** (`timeout`)
+- Wake the device, make sure the Stellar app is open, then click **Retry**.
+- Try a different USB port or cable if this keeps happening.
+
+**"Ledger device not found."** (`deviceNotFound`)
+- Check the USB connection; charge-only cables do not carry data.
+- Reconnect the device if it was unplugged during an operation.
+
+**"Ledger error: …"** (`unknown`)
+- Not retried automatically. Reconnect the device, reopen the Stellar app, and
+  try the action again. Check the browser console for the full error.
+
+**"WebUSB not supported"**
+- Use Chrome, Edge, or another Chromium-based browser.
 
 ### Debug Information
-Enable browser console to see detailed error messages and WebHID communication logs.
+Enable browser console to see detailed error messages and WebUSB communication logs.
 
 ## Future Enhancements
 
@@ -227,7 +268,7 @@ Enable browser console to see detailed error messages and WebHID communication l
 
 ## Conclusion
 
-The Ledger hardware wallet implementation provides a secure alternative to Freighter for users who prefer hardware wallet security. The implementation follows best practices for WebHID communication and provides comprehensive error handling for all failure scenarios.
+The Ledger hardware wallet implementation provides a secure alternative to Freighter for users who prefer hardware wallet security. The implementation follows best practices for WebUSB communication and provides comprehensive error handling for all failure scenarios.
 
 All acceptance criteria have been met:
 - ✅ Ledger option appears in WalletConnect

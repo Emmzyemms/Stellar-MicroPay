@@ -9,6 +9,13 @@ import {
   truncateMemoText,
 } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import {
+  formatAsset,
+  formatNumber,
+  formatXLM,
+} from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const MAX_RECIPIENTS = CONTRACT_MAX_BATCH;
 
@@ -45,6 +52,8 @@ export default function BatchPaymentForm({
   xlmBalance,
   onBatchSuccess,
 }: BatchPaymentFormProps) {
+  const { t } = useTranslation();
+  const isOnline = useOnlineStatus();
   const [recipients, setRecipients] = useState<BatchRecipient[]>([
     createRecipient(),
   ]);
@@ -107,13 +116,13 @@ export default function BatchPaymentForm({
   const validateRecipient = (recipient: BatchRecipient) => {
     const amount = parseFloat(recipient.amount);
     if (!isValidStellarAddress(recipient.address)) {
-      return "Invalid Stellar address.";
+      return t("batchPayment.invalidAddress");
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      return "Amount must be greater than 0.";
+      return t("batchPayment.amountMustBePositive");
     }
     if (recipient.address === publicKey) {
-      return "Recipient address cannot be the same as your wallet.";
+      return t("batchPayment.recipientIsOwnWallet");
     }
     return null;
   };
@@ -158,7 +167,8 @@ export default function BatchPaymentForm({
 
         if (signError || !signedXDR) {
           recipient.status = "failed";
-          recipient.error = signError || "Transaction signing was rejected.";
+          recipient.error =
+            signError || t("batchPayment.signingRejected");
           setRecipients([...nextRecipients]);
           continue;
         }
@@ -172,7 +182,8 @@ export default function BatchPaymentForm({
 
         onBatchSuccess?.();
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Batch payment failed.";
+        const message =
+          err instanceof Error ? err.message : t("batchPayment.paymentFailed");
         recipient.status = "failed";
         recipient.error = message;
         setRecipients([...nextRecipients]);
@@ -184,11 +195,9 @@ export default function BatchPaymentForm({
     const successRows = nextRecipients.some((recipient) => recipient.status === "success");
 
     if (!failedRows) {
-      setBatchMessage("Batch payment complete.");
+      setBatchMessage(t("batchPayment.completeMessage"));
     } else if (successRows) {
-      setBatchMessage(
-        "Batch completed with some failures. Retry individual failed payments below."
-      );
+      setBatchMessage(t("batchPayment.partialFailureMessage"));
     }
   };
 
@@ -208,10 +217,10 @@ export default function BatchPaymentForm({
       <div className="flex items-center justify-between mb-6 gap-3">
         <div>
           <h2 className="font-display text-lg font-semibold text-white">
-            Batch Send
+            {t("batchPayment.title")}
           </h2>
           <p className="text-sm text-slate-400">
-            Send XLM to up to {MAX_RECIPIENTS} recipients sequentially.
+            {t("batchPayment.subtitle", { max: MAX_RECIPIENTS })}
           </p>
         </div>
         <div className="rounded-full bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
@@ -228,7 +237,7 @@ export default function BatchPaymentForm({
             <div className="flex flex-col gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="label">Recipient address</span>
+                  <span className="label">{t("batchPayment.recipientAddress")}</span>
                   <input
                     type="text"
                     value={recipient.address}
@@ -243,7 +252,7 @@ export default function BatchPaymentForm({
                   />
                 </label>
                 <label className="block">
-                  <span className="label">Amount (XLM)</span>
+                  <span className="label">{t("batchPayment.amountXlm")}</span>
                   <input
                     type="number"
                     step="0.0000001"
@@ -262,7 +271,7 @@ export default function BatchPaymentForm({
               </div>
 
               <label className="block">
-                <span className="label">Memo (optional)</span>
+                <span className="label">{t("batchPayment.memoOptional")}</span>
                 <input
                   type="text"
                   value={recipient.memo}
@@ -273,25 +282,25 @@ export default function BatchPaymentForm({
                   }
                   disabled={isProcessing}
                   className="input-field w-full"
-                  placeholder="Payment note"
+                  placeholder={t("batchPayment.memoPlaceholder")}
                   maxLength={STELLAR_MEMO_TEXT_MAX_BYTES}
                 />
               </label>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-sm text-slate-300">
-                  Status:
+                  {t("batchPayment.statusLabel")}
                   {recipient.status === "idle" && (
-                    <span className="text-slate-400">Waiting</span>
+                    <span className="text-slate-400">{t("batchPayment.statusWaiting")}</span>
                   )}
                   {recipient.status === "pending" && (
-                    <span className="text-amber-300">Processing</span>
+                    <span className="text-amber-300">{t("batchPayment.statusProcessing")}</span>
                   )}
                   {recipient.status === "success" && (
-                    <span className="text-emerald-400">Sent ✓</span>
+                    <span className="text-emerald-400">{t("batchPayment.statusSent")}</span>
                   )}
                   {recipient.status === "failed" && (
-                    <span className="text-rose-400">Failed</span>
+                    <span className="text-rose-400">{t("batchPayment.statusFailed")}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -301,7 +310,7 @@ export default function BatchPaymentForm({
                     disabled={isProcessing || recipients.length <= 1}
                     className="text-xs text-slate-400 hover:text-white disabled:opacity-50"
                   >
-                    Remove
+                    {t("batchPayment.remove")}
                   </button>
                 </div>
               </div>
@@ -332,20 +341,29 @@ export default function BatchPaymentForm({
               </p>
             )}
           </div>
+          <button
+            type="button"
+            onClick={handleAddRecipient}
+            disabled={isProcessing || recipients.length >= MAX_RECIPIENTS}
+            className="btn-secondary w-full py-2.5"
+          >
+            {t("batchPayment.addRecipient")}
+          </button>
           <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-            Total: <span className="font-semibold text-white">{totalXLM.toFixed(7)} XLM</span>
+            {t("batchPayment.total")}{" "}
+            <span className="font-semibold text-white">{formatXLM(totalXLM)}</span>
           </div>
         </div>
 
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th>Recipient</th><th>Amount</th><th>Asset</th></tr></thead>
-          <tbody>{recipients.map((r) => <tr key={r.id} className={!isValidStellarAddress(r.address) ? "bg-rose-500/10 text-rose-300" : "text-slate-300"}><td className="font-mono">{r.address.slice(0, 8) || "G..."}</td><td>{Number(r.amount || 0).toFixed(2)}</td><td>XLM</td></tr>)}</tbody>
-          <tfoot className="border-t border-white/10 text-slate-300"><tr><td>Total</td><td className="font-semibold text-white">{totalXLM.toFixed(2)} XLM</td><td /></tr></tfoot>
+          <thead className="text-left text-xs uppercase tracking-wide text-slate-500"><tr><th>{t("batchPayment.recipientColumn")}</th><th>{t("batchPayment.amountColumn")}</th><th>{t("batchPayment.assetColumn")}</th></tr></thead>
+          <tbody>{recipients.map((r) => <tr key={r.id} className={!isValidStellarAddress(r.address) ? "bg-rose-500/10 text-rose-300" : "text-slate-300"}><td className="font-mono">{r.address.slice(0, 8) || "G..."}</td><td>{formatNumber(r.amount || 0, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td>XLM</td></tr>)}</tbody>
+          <tfoot className="border-t border-white/10 text-slate-300"><tr><td>{t("batchPayment.totalColumn")}</td><td className="font-semibold text-white">{formatAsset(totalXLM, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td><td /></tr></tfoot>
         </table>
 
         {exceedsBalance ? (
           <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 text-sm text-amber-100">
-            Total exceeds your available XLM balance after reserve.
+            {t("batchPayment.exceedsBalance")}
           </div>
         ) : null}
 
@@ -359,20 +377,29 @@ export default function BatchPaymentForm({
           <button
             type="button"
             onClick={handleSendBatch}
-            disabled={!canSubmit || isProcessing || exceedsBalance || !allRowsValid}
-            className="btn-primary w-full sm:w-auto py-2.5"
+            disabled={!canSubmit || isProcessing || exceedsBalance || !allRowsValid || !isOnline}
+            className="btn-primary w-full sm:w-auto py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!isOnline ? t("app.offlineActionDisabled") : undefined}
           >
-            {isProcessing ? "Sending batch..." : "Confirm & Send"}
+            {isProcessing
+              ? t("batchPayment.sending")
+              : t("batchPayment.confirmAndSend")}
           </button>
           <button
             type="button"
             onClick={handleRetryFailed}
-            disabled={!hasFailed || isProcessing}
-            className="btn-outline w-full sm:w-auto py-2.5"
+            disabled={!hasFailed || isProcessing || !isOnline}
+            className="btn-outline w-full sm:w-auto py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!isOnline ? t("app.offlineActionDisabled") : undefined}
           >
-            Retry failed payments
+            {t("batchPayment.retryFailed")}
           </button>
         </div>
+        {!isOnline && (
+          <p className="mt-2 text-center text-xs text-amber-400">
+            {t("app.offlineActionDisabled")}
+          </p>
+        )}
       </div>
     </div>
   );

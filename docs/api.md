@@ -236,6 +236,89 @@ curl -s -X GET "http://localhost:4000/api/payments/GBZXN7PIRZGNMHGA728RGRFZAPPWN
 | 401 | `{"error": "Unauthorized: <reason>"}` | Challenge expired (> 300s window), invalid signature, or wrong signer account |
 | 401 | `{"error": "Unauthorized: missing or invalid token"}` | Protected route called without `Bearer <token>` |
 | 401 | `{"error": "Unauthorized: invalid or expired token"}` | JWT expired or token signature failed verification |
+| 403 | `{"error": "Forbidden: invalid or missing CSRF token"}` | Cookie-bearing state-changing request missing valid `X-CSRF-Token` header |
+| 403 | `{"error": "Forbidden: CSRF token has expired"}` | Submitted CSRF token is older than the 24-hour expiration window |
+
+---
+
+## CSRF Protection & Token Lifecycle
+
+Stellar MicroPay implements Cross-Site Request Forgery (CSRF) protection using the **double-submit cookie pattern** (`backend/src/middleware/csrf.js`).
+
+### Design Overview
+
+```text
+  +-------------------------+                       +-------------------------+
+  |    Frontend Client      |                       |     Backend Server      |
+  +-------------------------+                       +-------------------------+
+               |                                                 |
+               | 1. GET /api/auth/csrf (or POST /api/auth login) |
+               |------------------------------------------------>|
+               |                                                 | Generate 64-hex token
+               |                                                 | (timestamp + entropy + HMAC)
+               | 2. 200 OK: { csrfToken: "<token>" }             |
+               |    Set-Cookie: csrfToken=<token>; Path=/;       |
+               |               SameSite=Strict (readable)        |
+               |<------------------------------------------------|
+               |                                                 |
+               | 3. State-changing request (POST, PUT, DELETE)   |
+               |    Cookie: csrfToken=<token>; jwt=<jwt>         |
+               |    X-CSRF-Token: <token>                        |
+               |------------------------------------------------>|
+               |                                                 | Verify:
+               |                                                 | - Constant-time match
+               |                                                 | - Token not expired (< 24h)
+               | 4. 200 OK: { success: true, ... }               |
+               |<------------------------------------------------|
+```
+
+### Key Parameters & Headers
+
+- **Cookie Name:** `csrfToken` (`httpOnly: false`, `sameSite: "strict"`, `path: "/"`, `maxAge: 24h`). It is intentionally non-httpOnly so frontend client scripts can read it and attach it to outgoing requests.
+- **Header Name:** `X-CSRF-Token` (case-insensitive header on incoming requests).
+- **Token Validity / TTL:** 24 hours (`86,400,000 ms`).
+
+### Token Lifecycle & Endpoints
+
+#### 1. Issuance
+CSRF tokens are issued in two ways:
+- **Explicit Fetch:** `GET /api/auth/csrf` returns `{ "csrfToken": "<hex64>" }` and sets the `csrfToken` cookie.
+- **Authentication Session Establishment:** Upon completing SEP-0010 challenge verification via `POST /api/auth`, the response returns `{ "success": true, "token": "<jwt>", "csrfToken": "<hex64>" }` and sets both the `jwt` cookie and `csrfToken` cookie.
+
+#### 2. Token Rotation
+- **Session Login:** The CSRF token automatically rotates whenever a user authenticates or re-authenticates.
+- **Explicit Rotation Endpoint:** Clients can rotate their token at any time by calling `POST /api/auth/csrf/rotate`. This returns `{ "success": true, "csrfToken": "<new_hex64>" }` and sets a fresh `csrfToken` cookie.
+- Once a token rotates, any subsequent state-changing request carrying the retired token is rejected with `403 Forbidden: invalid or missing CSRF token`.
+
+#### 3. Expiry & Validation
+- Tokens encode their issuance timestamp signed with HMAC.
+- If a client presents a token older than 24 hours, the server rejects the request with HTTP `403 Forbidden: CSRF token has expired`. The frontend should fetch a fresh token via `GET /api/auth/csrf` and retry the operation.
+
+### Protected vs. Exempt Routes
+
+- **Protected Routes:** All state-changing HTTP methods (`POST`, `PUT`, `DELETE`, `PATCH`) across application routes (e.g., `/api/accounts`, `/api/payments`, `/api/turrets`, `/api/tips`, `/api/webhooks`) when the request carries cookies.
+- **Exempt Routes:**
+  - **`/api/auth/*`**: All authentication endpoints are exempt to allow unauthenticated bootstrapping of challenge requests, logins, and token fetching.
+  - **`/federation`**: Public Stellar federation lookup endpoint.
+  - **Safe Methods (`GET`, `HEAD`, `OPTIONS`)**: Idempotent and safe HTTP methods are never blocked by CSRF checks.
+  - **Pure Stateless Clients (No Cookies)**: Requests that carry no cookies carry no ambient authority. Programmatic API clients, CLI tools, and mobile apps sending only `Authorization: Bearer <token>` are exempt from CSRF checks.
+
+### Interplay with JWT Auth and CORS
+
+- **Dual-Auth Scheme:** The backend accepts JWTs via the `Authorization: Bearer <token>` header or via the HTTP-only `jwt` cookie.
+  - If a client uses *only* the `Authorization` header without cookies, CSRF protection is automatically bypassed because browser ambient credential hijacking is not possible.
+  - When the frontend uses cookie-based sessions, the browser automatically attaches cookies to cross-origin requests. CSRF double-submit validation ensures forged requests from third-party sites cannot trigger state changes without access to the readable `csrfToken` cookie.
+- **CORS Configuration:**
+  - `credentials: true` enables the browser to transmit cookies across origins.
+  - `allowedHeaders`: Explicitly allows `X-CSRF-Token`, `Authorization`, `Content-Type`, `X-Request-ID`, and `X-Idempotency-Key`.
+  - `exposedHeaders`: Exposes `X-CSRF-Token`, `X-Request-ID`, and `X-Idempotency-Replayed`.
+  - Frontend fetch calls must include `credentials: "include"` (or `withCredentials: true` in Axios) and pass `headers: { "X-CSRF-Token": csrfToken }`.
+
+### Rationale for CSRF on a Cross-Origin API
+
+Modern single-page applications often authenticate using bearer tokens. However, Stellar MicroPay supports an HTTP-only `jwt` session cookie to mitigate the risk of Cross-Site Scripting (XSS) token theft from web storage (`localStorage` / `sessionStorage`).
+
+Because cookies are automatically attached by browsers to cross-site requests, cross-origin attackers could theoretically trick an authenticated browser into submitting unauthorized transactions (e.g. initiating payments or modifying account settings). The double-submit cookie scheme provides defense-in-depth: the Same-Origin Policy prevents an attacker on another domain from reading the victim's `csrfToken` cookie, preventing them from constructing the matching `X-CSRF-Token` header. Pure bearer-token requests remain unaffected.
 
 ---
 

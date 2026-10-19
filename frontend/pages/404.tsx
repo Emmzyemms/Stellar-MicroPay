@@ -4,10 +4,16 @@
  */
 
 import Link from "next/link";
+import { useTranslation } from "@/contexts/I18nContext";
 
 export default function Custom404() {
+  const { t } = useTranslation();
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <>
+      <Head>
+        <title>{t("pages.notFound.title")}</title>
+      </Head>
+      <div className="min-h-screen flex items-center justify-center px-4">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-stellar-500/3 rounded-full blur-3xl" />
@@ -45,43 +51,44 @@ export default function Custom404() {
 
         {/* Error message */}
         <h2 className="font-display text-2xl font-semibold text-white mb-4">
-          {`Lost in the cosmos?`}
+          {t("notFound.title")}
         </h2>
 
         <p className="text-slate-400 text-base mb-8 leading-relaxed">
-          {`The stellar path you're looking for seems to have drifted into deep space.`}
+          {t("notFound.message")}
           <br />
-          {`Let's get you back to safety.`}
+          {t("notFound.messageBack")}
         </p>
 
         {/* Action buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/" className="btn-primary text-base px-8 py-3.5">
-            {`Go Home →`}
+            {t("notFound.goHome")}
           </Link>
           <button
             onClick={() => window.history.back()}
             className="btn-secondary text-base px-8 py-3.5"
           >
-            {`← Go Back`}
+            {t("notFound.goBack")}
           </button>
         </div>
 
         {/* Help text */}
         <div className="mt-12 pt-8 border-t border-white/5">
           <p className="text-slate-600 text-sm">
-            {`If you think this is an error, please `}
+            {t("notFound.errorLead")}
             <a
               href="https://github.com/your-org/stellar-micropay/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="text-stellar-400 hover:text-stellar-300 transition-colors"
             >
-              {`report an issue on GitHub`}
+              {t("notFound.reportIssue")}
             </a>
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -11,7 +11,8 @@ import {
   stroopsToXlm,
   OnChainReceipt,
 } from "@/lib/receipts";
-import { formatDate } from "@/utils/format";
+import { formatDate } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface ReceiptsListProps {
   publicKey: string;
@@ -25,6 +26,7 @@ export function receiptDate(receipt: OnChainReceipt): string {
 }
 
 export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt }: ReceiptsListProps) {
+  const { t } = useTranslation();
   const [receipts, setReceipts] = useState<OnChainReceipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt
 
   if (loading) {
     return (
-      <div className="flex justify-center py-10" aria-live="polite" aria-label="Loading receipts">
+      <div className="flex justify-center py-10" aria-live="polite" aria-label={t("receipts.loading")}>
         <div className="w-6 h-6 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -70,7 +72,7 @@ export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt
           onClick={reload}
           className="mt-3 text-xs font-medium text-stellar-400 hover:text-stellar-300 cursor-pointer"
         >
-          Try again
+          {t("receipts.tryAgain")}
         </button>
       </div>
     );
@@ -79,16 +81,16 @@ export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt
   if (receipts.length === 0) {
     return (
       <div className="text-center py-10 text-sm text-slate-400">
-        <p>No receipts minted yet.</p>
+        <p>{t("receipts.empty")}</p>
         <p className="mt-1 text-xs text-slate-500">
-          Use &ldquo;Mint receipt&rdquo; on a payment you sent to record proof of payment on-chain.
+          {t("receipts.emptyHint")}
         </p>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-2" aria-label="Minted receipts">
+    <ul className="space-y-2" aria-label={t("receipts.listLabel")}>
       {receipts.map((receipt) => (
         <li
           key={receipt.index}
@@ -98,17 +100,17 @@ export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-medium text-slate-200">
-                {`Receipt #${receipt.index}`}
+                {t("receipts.receiptNumber", { index: receipt.index })}
                 <span className="ml-2 text-xs font-normal text-slate-500">{receiptDate(receipt)}</span>
               </p>
               <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
-                <dt className="text-slate-500">To</dt>
+                <dt className="text-slate-500">{t("receipts.to")}</dt>
                 <dd className="font-mono text-slate-300 truncate" title={receipt.to}>
                   {shortenAddress(receipt.to, 6)}
                 </dd>
-                <dt className="text-slate-500">Memo</dt>
+                <dt className="text-slate-500">{t("receipts.memo")}</dt>
                 <dd className="text-slate-300 break-words">{receipt.memo || "-"}</dd>
-                <dt className="text-slate-500">Ledger</dt>
+                <dt className="text-slate-500">{t("receipts.ledger")}</dt>
                 <dd className="text-slate-300">{receipt.ledger}</dd>
               </dl>
             </div>
@@ -121,9 +123,9 @@ export default function ReceiptsList({ publicKey, refreshKey = 0, onPrintReceipt
                   type="button"
                   onClick={() => onPrintReceipt(receipt)}
                   className="text-xs font-medium text-stellar-400 hover:text-stellar-300 bg-stellar-500/10 hover:bg-stellar-500/20 px-2 py-1 rounded cursor-pointer"
-                  aria-label={`Print receipt #${receipt.index}`}
+                  aria-label={t("receipts.printReceiptAria", { index: receipt.index })}
                 >
-                  Print
+                  {t("receipts.print")}
                 </button>
               )}
             </div>

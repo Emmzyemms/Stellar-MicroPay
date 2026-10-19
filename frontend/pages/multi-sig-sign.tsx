@@ -4,14 +4,17 @@
  */
 
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { useEffect, useState } from "react";
 import { Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { formatAsset } from "@/utils/format";
+import { useTranslation } from "@/contexts/I18nContext";
+import { formatAsset } from "@/utils/intlFormatters";
 
 export default function MultiSigSignPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { xdr } = router.query;
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [signedXDR, setSignedXDR] = useState<string | null>(null);
@@ -26,14 +29,14 @@ export default function MultiSigSignPage() {
       if (tx instanceof Transaction) {
         setTransaction(tx);
       } else {
-        setError("FeeBump transactions are not supported.");
+        setError(t("multiSigSign.feeBumpUnsupported"));
       }
       setStatus("ready");
     } catch (err) {
-      setError("Invalid transaction XDR");
+      setError(t("multiSigSign.invalidXdr"));
       setStatus("ready");
     }
-  }, [xdr]);
+  }, [xdr, t]);
 
   const handleSign = async () => {
     if (!transaction) return;
@@ -42,14 +45,14 @@ export default function MultiSigSignPage() {
     try {
       const { signedXDR, error: signError } = await signTransactionWithWallet(transaction.toXDR());
       if (signError || !signedXDR) {
-        setError(signError || "Failed to sign transaction");
+        setError(signError || t("multiSigSign.failedToSign"));
         setStatus("ready");
         return;
       }
       setSignedXDR(signedXDR);
       setStatus("signed");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to sign transaction");
+      setError(err instanceof Error ? err.message : t("multiSigSign.failedToSign"));
       setStatus("ready");
     }
   };
@@ -58,39 +61,48 @@ export default function MultiSigSignPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="text-center">
-          <p className="text-slate-400">Loading transaction...</p>
+          <p className="text-slate-400">{t("multiSigSign.loading")}</p>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error && !transaction) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center">
-          <p className="text-red-400">{error}</p>
+      <>
+        <Head>
+          <title>{t("pages.multiSigSign.title")}</title>
+        </Head>
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <p className="text-red-400">{error}</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-16">
+    <>
+      <Head>
+        <title>{t("pages.multiSigSign.title")}</title>
+      </Head>
+      <div className="max-w-2xl mx-auto px-4 py-16">
       <h1 className="font-display text-2xl font-bold text-white mb-6">Sign Multi-Signature Transaction</h1>
 
       {transaction && (
         <div className="card mb-6">
-          <h2 className="font-display text-lg font-semibold text-white mb-4">Transaction Details</h2>
+          <h2 className="font-display text-lg font-semibold text-white mb-4">{t("multiSigSign.detailsTitle")}</h2>
           <div className="space-y-2">
-            <p><span className="text-slate-400">From:</span> {transaction.source}</p>
+            <p><span className="text-slate-400">{t("multiSigSign.from")}</span> {transaction.source}</p>
             {transaction.operations.map((op, i) => {
               if (op.type === "payment") {
                 const payment = op as any;
                 return (
                   <div key={i}>
-                    <p><span className="text-slate-400">To:</span> {payment.destination}</p>
+                    <p><span className="text-slate-400">{t("multiSigSign.to")}</span> {payment.destination}</p>
                     <p>
-                      <span className="text-slate-400">Amount:</span>{" "}
+                      <span className="text-slate-400">{t("multiSigSign.amount")}</span>{" "}
                       {formatAsset(
                         payment.amount,
                         payment.asset?.isNative() ? "XLM" : payment.asset?.code
@@ -99,10 +111,14 @@ export default function MultiSigSignPage() {
                   </div>
                 );
               }
-              return <p key={i}>Operation {i + 1}: {op.type}</p>;
+              return (
+                <p key={i}>
+                  {t("multiSigSign.operation", { number: i + 1, type: op.type })}
+                </p>
+              );
             })}
             {transaction.memo && transaction.memo.type !== "none" && (
-              <p><span className="text-slate-400">Memo:</span> {transaction.memo.value?.toString()}</p>
+              <p><span className="text-slate-400">{t("multiSigSign.memo")}</span> {transaction.memo.value?.toString()}</p>
             )}
           </div>
         </div>
@@ -110,19 +126,19 @@ export default function MultiSigSignPage() {
 
       {status === "ready" && (
         <button onClick={handleSign} className="btn-primary w-full">
-          Sign with Freighter
+          {t("multiSigSign.signWithFreighter")}
         </button>
       )}
 
       {status === "signing" && (
-        <p className="text-center text-slate-400">Signing...</p>
+        <p className="text-center text-slate-400">{t("multiSigSign.signing")}</p>
       )}
 
       {status === "signed" && signedXDR && (
         <div className="card">
-          <h2 className="font-display text-lg font-semibold text-white mb-4">Signed Transaction XDR</h2>
+          <h2 className="font-display text-lg font-semibold text-white mb-4">{t("multiSigSign.signedTitle")}</h2>
           <p className="text-slate-300 mb-4">
-            Copy this signed XDR and send it back to the transaction initiator.
+            {t("multiSigSign.copyHint")}
           </p>
           <textarea
             value={signedXDR}
@@ -133,7 +149,7 @@ export default function MultiSigSignPage() {
             onClick={() => navigator.clipboard.writeText(signedXDR)}
             className="btn-secondary w-full mt-4"
           >
-            Copy Signed XDR
+            {t("multiSigSign.copySignedXdr")}
           </button>
         </div>
       )}
@@ -141,6 +157,7 @@ export default function MultiSigSignPage() {
       {error && (
         <p className="text-red-400 text-sm mt-4">{error}</p>
       )}
-    </div>
+      </div>
+    </>
   );
 }

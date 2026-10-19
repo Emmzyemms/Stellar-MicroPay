@@ -8,6 +8,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { server } from "@/lib/stellar";
+import { formatAsset, formatXLM } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface WalletHealthData {
   totalBalance: number;
@@ -42,18 +44,15 @@ const BASE_RESERVE = 0.5; // XLM per reserve unit
 const BASE_ACCOUNT_RESERVE = 1; // base account = 2 subentries worth (min balance = 1 XLM)
 
 const TOOLTIP_DESCRIPTIONS: Record<string, string> = {
-  totalBalance: "The total XLM balance in your account, including all locked reserves.",
-  spendableBalance:
-    "The amount you can actually send. Stellar requires a minimum reserve of 0.5 XLM per subentry (trustlines, signers, offers, etc.) plus a 1 XLM base reserve.",
-  trustlines:
-    "Trustlines allow your account to hold non-XLM assets. Each trustline costs 0.5 XLM as a reserve that cannot be spent.",
-  signers:
-    "Additional signers that can authorize transactions on your account. Used for multi-signature security. Each non-master signer costs 0.5 XLM reserve.",
-  homeDomain:
-    "A domain set on your account that links it to a SEP-0001 stellar.toml file. Used by wallets and exchanges to verify your identity.",
+  totalBalance: "walletHealth.tooltipTotalBalance",
+  spendableBalance: "walletHealth.tooltipSpendableBalance",
+  trustlines: "walletHealth.tooltipTrustlines",
+  signers: "walletHealth.tooltipSigners",
+  homeDomain: "walletHealth.tooltipHomeDomain",
 };
 
 export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps) {
+  const { t } = useTranslation();
   const [healthData, setHealthData] = useState<WalletHealthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,23 +98,21 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
       const warnings: string[] = [];
 
       if (spendableBalance < 1) {
-        warnings.push("Low spendable balance — your account is close to the minimum reserve.");
+        warnings.push(t("walletHealth.warningLowSpendable"));
       }
       if (trustlines.length > 10) {
         warnings.push(
-          `High number of trustlines (${trustlines.length}) — each locks 0.5 XLM in reserve.`
+          t("walletHealth.warningManyTrustlines", { count: trustlines.length })
         );
       }
       if (signers.length > 5) {
         warnings.push(
-          `High number of signers (${signers.length}) — review if all are still needed.`
+          t("walletHealth.warningManySigners", { count: signers.length })
         );
       }
       const masterSigner = signers.find((s) => s.key === publicKey);
       if (masterSigner && masterSigner.weight === 0) {
-        warnings.push(
-          "Master key weight is 0 — your account may require all signers for transactions."
-        );
+        warnings.push(t("walletHealth.warningMasterWeightZero"));
       }
 
       setHealthData({
@@ -130,11 +127,11 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         warnings,
       });
     } catch (err: any) {
-      setError(err?.message || "Failed to load wallet health data.");
+      setError(err?.message || t("walletHealth.loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [publicKey]);
+  }, [publicKey, t]);
 
   useEffect(() => {
     loadHealthData();
@@ -168,7 +165,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
       <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
         <div className="flex items-center gap-2 mb-2">
           <HeartIcon className="w-5 h-5 text-slate-400" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Wallet Health</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t("walletHealth.title")}</h2>
         </div>
         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
           <p className="text-sm text-red-400">{error}</p>
@@ -177,7 +174,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
           onClick={loadHealthData}
           className="mt-3 text-sm text-stellar-400 hover:text-stellar-300 transition-colors"
         >
-          Retry
+          {t("common.retry")}
         </button>
       </div>
     );
@@ -191,7 +188,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <HeartIcon className="w-5 h-5 text-stellar-400" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Wallet Health</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t("walletHealth.title")}</h2>
         </div>
         <div
           className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1 rounded-full ${
@@ -203,7 +200,9 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
           <span
             className={`w-2 h-2 rounded-full ${healthData.isHealthy ? "bg-emerald-400" : "bg-amber-400"}`}
           />
-          {healthData.isHealthy ? "Your account is healthy" : `${healthData.warnings.length} warning${healthData.warnings.length > 1 ? "s" : ""}`}
+          {healthData.isHealthy
+            ? t("walletHealth.healthy")
+            : t("walletHealth.warnings", { count: healthData.warnings.length })}
         </div>
       </div>
 
@@ -226,8 +225,8 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
       <div className="space-y-2">
         {/* Total Balance */}
         <HealthRow
-          label="Total Balance"
-          value={`${healthData.totalBalance.toFixed(7)} XLM`}
+          label={t("walletHealth.totalBalanceLabel")}
+          value={formatXLM(healthData.totalBalance, { preserveTrailingZeros: true })}
           tooltipKey="totalBalance"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -235,9 +234,11 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
 
         {/* Spendable Balance */}
         <HealthRow
-          label="Spendable Balance"
-          value={`${healthData.spendableBalance.toFixed(7)} XLM`}
-          subValue={`${healthData.baseReserve.toFixed(1)} XLM locked in reserves`}
+          label={t("walletHealth.spendableBalanceLabel")}
+          value={formatXLM(healthData.spendableBalance, { preserveTrailingZeros: true })}
+          subValue={t("walletHealth.lockedInReserves", {
+            amount: formatAsset(healthData.baseReserve, "XLM", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+          })}
           tooltipKey="spendableBalance"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -246,12 +247,16 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
 
         {/* Trustlines */}
         <HealthRow
-          label="Trustlines"
-          value={`${healthData.trustlines.length} trustline${healthData.trustlines.length !== 1 ? "s" : ""}`}
+          label={t("walletHealth.trustlinesLabel")}
+          value={t("walletHealth.trustlines", {
+            count: healthData.trustlines.length,
+          })}
           subValue={
             healthData.trustlines.length > 0
-              ? `${(healthData.trustlines.length * BASE_RESERVE).toFixed(1)} XLM reserved`
-              : "No extra reserves"
+              ? t("walletHealth.reservedAmount", {
+                  amount: formatAsset(healthData.trustlines.length * BASE_RESERVE, "XLM", { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+                })
+              : t("walletHealth.noExtraReserves")
           }
           tooltipKey="trustlines"
           activeTooltip={activeTooltip}
@@ -271,7 +276,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
                 </span>
                 <div className="flex items-center gap-3">
                   <span className="text-slate-500 dark:text-slate-400">{tl.balance}</span>
-                  <span className="text-amber-400">-{tl.reserveCost} XLM reserve</span>
+                  <span className="text-amber-400">{t("walletHealth.xlmReserve", { amount: tl.reserveCost })}</span>
                 </div>
               </div>
             ))}
@@ -280,8 +285,8 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
 
         {/* Signers */}
         <HealthRow
-          label="Multi-sig Signers"
-          value={`${healthData.signers.length} signer${healthData.signers.length !== 1 ? "s" : ""}`}
+          label={t("walletHealth.signersLabel")}
+          value={t("walletHealth.signers", { count: healthData.signers.length })}
           tooltipKey="signers"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -297,13 +302,13 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
               >
                 <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[200px]">
                   {signer.key === publicKey ? (
-                    <span className="text-stellar-400">Master key (this wallet)</span>
+                    <span className="text-stellar-400">{t("walletHealth.masterKey")}</span>
                   ) : (
                     `${signer.key.slice(0, 8)}…${signer.key.slice(-6)}`
                   )}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Weight: {signer.weight}</span>
+                  <span className="text-slate-500">{t("walletHealth.weightLabel", { weight: signer.weight })}</span>
                   <span className="text-slate-600 capitalize">{signer.type}</span>
                 </div>
               </div>
@@ -313,8 +318,8 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
 
         {/* Home Domain */}
         <HealthRow
-          label="Home Domain"
-          value={healthData.homeDomain || "Not set"}
+          label={t("walletHealth.homeDomainLabel")}
+          value={healthData.homeDomain || t("walletHealth.notSet")}
           tooltipKey="homeDomain"
           activeTooltip={activeTooltip}
           onToggleTooltip={toggleTooltip}
@@ -327,7 +332,7 @@ export default function WalletHealthPanel({ publicKey }: WalletHealthPanelProps)
         className="mt-4 text-xs text-slate-400 dark:text-slate-500 hover:text-stellar-400 transition-colors flex items-center gap-1"
       >
         <RefreshIcon className="w-3.5 h-3.5" />
-        Refresh
+        {t("walletHealth.refresh")}
       </button>
     </div>
   );
@@ -354,6 +359,7 @@ function HealthRow({
   onToggleTooltip,
   highlight,
 }: HealthRowProps) {
+  const { t } = useTranslation();
   return (
     <div className="relative">
       <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-cosmos-700/50 hover:bg-slate-100 dark:hover:bg-cosmos-700 transition-colors">
@@ -363,7 +369,7 @@ function HealthRow({
             type="button"
             onClick={() => onToggleTooltip(tooltipKey)}
             className="text-slate-400 hover:text-stellar-400 transition-colors"
-            aria-label={`Info about ${label}`}
+            aria-label={t("walletHealth.infoAbout", { label })}
           >
             <InfoIcon className="w-3.5 h-3.5" />
           </button>
@@ -389,7 +395,7 @@ function HealthRow({
       {/* Tooltip */}
       {activeTooltip === tooltipKey && (
         <div className="absolute left-0 right-0 z-10 mt-1 p-3 bg-slate-900 border border-white/10 rounded-lg shadow-xl text-xs text-slate-300 leading-relaxed">
-          {TOOLTIP_DESCRIPTIONS[tooltipKey]}
+          {t(TOOLTIP_DESCRIPTIONS[tooltipKey])}
         </div>
       )}
     </div>

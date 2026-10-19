@@ -14,6 +14,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import { fetchNetworkMetrics, type NetworkMetrics } from "@/lib/stellar";
+import { useTranslation } from "@/contexts/I18nContext";
+import {
+  formatDate,
+  formatNumber,
+  formatTime,
+} from "@/utils/intlFormatters";
 
 /** How often the page re-reads Horizon. */
 const AUTO_REFRESH_MS = 10_000;
@@ -30,143 +36,149 @@ interface MetricRow {
 }
 
 function formatLedgerSequence(sequence: number): string {
-  return `#${sequence.toLocaleString("en-US")}`;
+  return `#${formatNumber(sequence, "XLM", { maximumFractionDigits: 0 })}`;
 }
 
-/** Deterministic UTC rendering, e.g. `2026-09-24 10:35:22 UTC`. */
-function formatUtc(isoTimestamp: string): string {
-  const parsed = new Date(isoTimestamp);
-  if (Number.isNaN(parsed.getTime())) return "Unknown";
-  return `${parsed.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+/** Localized UTC rendering, e.g. `Sep 24, 2026, 10:35 AM UTC`. */
+function formatUtc(isoTimestamp: string, t: Translate): string {
+  if (Number.isNaN(new Date(isoTimestamp).getTime())) return t("network.unknown");
+  return formatDate(isoTimestamp, { timezone: "UTC" });
 }
 
 function formatXlm(amount: number): string {
-  return amount.toFixed(7);
+  return formatNumber(amount, "XLM", {
+    minimumFractionDigits: 7,
+    maximumFractionDigits: 7,
+  });
 }
 
-function formatCount(value: number | null): string {
-  return value === null ? "Unavailable" : value.toLocaleString("en-US");
+function formatCount(value: number | null, t: Translate): string {
+  return value === null
+    ? t("network.unavailable")
+    : formatNumber(value, "XLM", { maximumFractionDigits: 0 });
 }
 
-function buildMetricRows(metrics: NetworkMetrics): MetricRow[] {
+function buildMetricRows(metrics: NetworkMetrics, t: Translate): MetricRow[] {
   return [
     {
       key: "ledger",
-      metric: "Latest ledger",
+      metric: t("network.latestLedger"),
       value: formatLedgerSequence(metrics.latestLedgerSequence),
-      unit: "sequence number",
-      detail: "Newest ledger Horizon has ingested",
+      unit: t("network.sequenceNumberUnit"),
+      detail: t("network.latestLedgerDetail"),
     },
     {
       key: "close-time",
-      metric: "Last ledger close time",
-      value: formatUtc(metrics.lastLedgerCloseTime),
+      metric: t("network.lastCloseTime"),
+      value: formatUtc(metrics.lastLedgerCloseTime, t),
       unit: "UTC",
-      detail: "When the newest ledger closed",
+      detail: t("network.lastCloseTimeDetail"),
     },
     {
       key: "close-lag",
-      metric: "Time since last close",
-      value: metrics.ledgerCloseLagSeconds.toLocaleString("en-US"),
-      unit: "seconds",
-      detail: "Ledgers close roughly every 5 seconds",
+      metric: t("network.timeSinceClose"),
+      value: formatNumber(metrics.ledgerCloseLagSeconds, "XLM", { maximumFractionDigits: 0 }),
+      unit: t("network.secondsUnit"),
+      detail: t("network.closeLagDetail"),
     },
     {
       key: "base-fee",
-      metric: "Base fee",
+      metric: t("network.baseFee"),
       value: formatXlm(metrics.baseFeeXlm),
       unit: "XLM",
-      detail: "Protocol minimum fee per operation",
+      detail: t("network.baseFeeDetail"),
     },
     {
       key: "recommended-fee",
-      metric: "Recommended fee",
+      metric: t("network.recommendedFee"),
       value: formatXlm(metrics.recommendedFeeXlm),
       unit: "XLM",
-      detail: "Median fee charged by recent transactions",
+      detail: t("network.recommendedFeeDetail"),
     },
     {
       key: "p95-fee",
-      metric: "P95 fee",
+      metric: t("network.p95Fee"),
       value: formatXlm(metrics.feeP95Xlm),
       unit: "XLM",
-      detail: "95th percentile fee charged",
+      detail: t("network.p95FeeDetail"),
     },
     {
       key: "p99-fee",
-      metric: "P99 fee",
+      metric: t("network.p99Fee"),
       value: formatXlm(metrics.feeP99Xlm),
       unit: "XLM",
-      detail: "99th percentile fee charged",
+      detail: t("network.p99FeeDetail"),
     },
     {
       key: "active-accounts",
-      metric: "Active accounts",
-      value: formatCount(metrics.activeAccounts),
-      unit: "accounts",
-      detail: `Distinct accounts in ledger ${formatLedgerSequence(
-        metrics.activeAccountsLedger
-      )}`,
+      metric: t("network.activeAccounts"),
+      value: formatCount(metrics.activeAccounts, t),
+      unit: t("network.accountsUnit"),
+      detail: t("network.activeAccountsDetail", {
+        ledger: formatLedgerSequence(metrics.activeAccountsLedger),
+      }),
     },
     {
       key: "ops-per-second",
-      metric: "Operations per second",
+      metric: t("network.opsPerSecond"),
       value:
         metrics.operationsPerSecond === null
-          ? "Unavailable"
-          : metrics.operationsPerSecond.toFixed(2),
+          ? t("network.unavailable")
+          : formatNumber(metrics.operationsPerSecond, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       unit: "ops/s",
-      detail: `Average over the last ${metrics.sampledLedgerCount} ledgers`,
+      detail: t("network.opsPerSecondDetail", { count: metrics.sampledLedgerCount }),
     },
     {
       key: "horizon-latency",
-      metric: "Horizon root latency",
-      value: metrics.horizonLatencyMs.toFixed(0),
-      unit: "milliseconds",
-      detail: "Measured client-side on this device",
+      metric: t("network.horizonRootLatency"),
+      value: formatNumber(metrics.horizonLatencyMs, "XLM", { maximumFractionDigits: 0 }),
+      unit: t("network.millisecondsUnit"),
+      detail: t("network.measuredClientSide"),
     },
     {
       key: "fee-stats-latency",
-      metric: "Horizon fee stats latency",
-      value: metrics.feeStatsLatencyMs.toFixed(0),
-      unit: "milliseconds",
-      detail: "Measured client-side on this device",
+      metric: t("network.horizonFeeStatsLatency"),
+      value: formatNumber(metrics.feeStatsLatencyMs, "XLM", { maximumFractionDigits: 0 }),
+      unit: t("network.millisecondsUnit"),
+      detail: t("network.measuredClientSide"),
     },
     {
       key: "fee-level",
-      metric: "Fee level",
+      metric: t("network.feeLevel"),
       value: metrics.feeLevel,
-      unit: "band",
-      detail: "normal · elevated · high",
+      unit: t("network.bandUnit"),
+      detail: t("network.feeLevelDetail"),
     },
     {
       key: "protocol",
-      metric: "Protocol version",
-      value: metrics.protocolVersion === null ? "Unknown" : String(metrics.protocolVersion),
-      unit: "version",
+      metric: t("network.protocolVersion"),
+      value: metrics.protocolVersion === null ? t("network.unknown") : String(metrics.protocolVersion),
+      unit: t("network.versionUnit"),
     },
     {
       key: "passphrase",
-      metric: "Network passphrase",
-      value: metrics.networkPassphrase ?? "Unknown",
-      unit: "identifier",
+      metric: t("network.networkPassphrase"),
+      value: metrics.networkPassphrase ?? t("network.unknown"),
+      unit: t("network.identifierUnit"),
     },
     {
       key: "horizon-version",
-      metric: "Horizon version",
-      value: metrics.horizonVersion ?? "Unknown",
-      unit: "build",
+      metric: t("network.horizonVersion"),
+      value: metrics.horizonVersion ?? t("network.unknown"),
+      unit: t("network.buildUnit"),
     },
     {
       key: "core-version",
-      metric: "Stellar Core version",
-      value: metrics.coreVersion ?? "Unknown",
-      unit: "build",
+      metric: t("network.coreVersion"),
+      value: metrics.coreVersion ?? t("network.unknown"),
+      unit: t("network.buildUnit"),
     },
   ];
 }
 
 function ConnectingSkeleton() {
+  const { t } = useTranslation();
+
   return (
     <div
       className="bg-cosmos-800/50 border border-stellar-500/20 rounded-xl p-6"
@@ -176,10 +188,10 @@ function ConnectingSkeleton() {
     >
       <div className="flex items-center gap-3 mb-6">
         <div className="w-5 h-5 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-300 font-medium">Connecting…</p>
+        <p className="text-slate-300 font-medium">{t("network.connecting")}</p>
       </div>
       <p className="text-sm text-slate-500 mb-6">
-        Contacting the Horizon API for the latest ledger, fee and account data.
+        {t("network.connectingHint")}
       </p>
       <div className="space-y-3" aria-hidden="true">
         {[0, 1, 2, 3, 4, 5].map((row) => (
@@ -195,6 +207,7 @@ function ConnectingSkeleton() {
 }
 
 export default function Network() {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<NetworkMetrics | null>(null);
   const [status, setStatus] = useState<LoadState>("connecting");
   const [error, setError] = useState<string | null>(null);
@@ -228,7 +241,7 @@ export default function Network() {
     } catch (err) {
       console.error("Failed to load network metrics:", err);
       const message =
-        err instanceof Error ? err.message : "Failed to load network statistics";
+        err instanceof Error ? err.message : t("network.loadFailed");
 
       // Keep the last good snapshot on screen; only blank the page if we have
       // never successfully loaded anything.
@@ -244,7 +257,7 @@ export default function Network() {
     } finally {
       setIsRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadMetrics();
@@ -256,10 +269,10 @@ export default function Network() {
   const header = (
     <div className="text-center mb-10">
       <h1 className="font-display text-3xl font-bold text-white mb-3">
-        Stellar Network Status
+        {t("network.pageTitle")}
       </h1>
       <p className="text-slate-400">
-        Live metrics from the Horizon API · Auto-refreshes every 10 seconds
+        {t("network.pageSubtitle")}
       </p>
     </div>
   );
@@ -268,7 +281,7 @@ export default function Network() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
         <Head>
-          <title>Network Status | Stellar-MicroPay</title>
+          <title>{t("pages.network.title")}</title>
         </Head>
         {header}
         <ConnectingSkeleton />
@@ -280,7 +293,7 @@ export default function Network() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
         <Head>
-          <title>Network Status | Stellar-MicroPay</title>
+          <title>{t("pages.network.title")}</title>
         </Head>
         {header}
         <div className="text-center" role="alert">
@@ -301,23 +314,23 @@ export default function Network() {
             </svg>
           </div>
           <h2 className="font-display text-2xl font-bold text-white mb-2">
-            Network Error
+            {t("network.networkError")}
           </h2>
           <p className="text-slate-400 mb-6">{error}</p>
           <button onClick={loadMetrics} className="btn-primary">
-            Try Again
+            {t("network.tryAgain")}
           </button>
         </div>
       </div>
     );
   }
 
-  const rows = buildMetricRows(metrics);
+  const rows = buildMetricRows(metrics, t);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Network Status | Stellar-MicroPay</title>
+        <title>{t("pages.network.title")}</title>
         <meta
           name="description"
           content="Live Stellar network health: ledger sequence, close time, fees, active accounts, operations per second and Horizon latency."
@@ -331,7 +344,7 @@ export default function Network() {
           className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300"
           role="status"
         >
-          Showing the last successful reading — refresh failed: {refreshError}
+          {t("network.refreshFailed", { error: refreshError })}
         </div>
       )}
 
@@ -346,12 +359,12 @@ export default function Network() {
               aria-hidden="true"
             />
             <span className="text-sm text-slate-400" aria-live="polite">
-              {ledgerPulse ? "New ledger closed!" : "Waiting for the next ledger…"}
+              {ledgerPulse ? t("network.newLedgerClosed") : t("network.waitingForLedger")}
             </span>
           </div>
           <div className="text-right">
             <span className="text-xs uppercase tracking-wider text-slate-500">
-              Latest ledger
+              {t("network.latestLedger")}
             </span>
             <p
               className={`font-display text-2xl font-bold transition-colors ${
@@ -364,10 +377,10 @@ export default function Network() {
         </div>
         <p className="mt-4 text-xs text-slate-500">
           {isRefreshing
-            ? "Refreshing…"
+            ? t("network.refreshing")
             : lastUpdatedAt
-            ? `Last updated ${lastUpdatedAt.toLocaleTimeString()}`
-            : "Awaiting first reading"}
+            ? t("network.lastUpdated", { time: formatTime(lastUpdatedAt) })
+            : t("network.awaitingFirstReading")}
         </p>
       </div>
 
@@ -375,21 +388,21 @@ export default function Network() {
       <div className="bg-cosmos-800/50 border border-stellar-500/20 rounded-xl overflow-hidden">
         <table className="w-full text-left text-sm">
           <caption className="px-6 py-4 text-left font-display text-lg font-semibold text-white border-b border-white/5">
-            Stellar network health metrics
+            {t("network.tableCaption")}
             <span className="block text-xs font-normal text-slate-500 mt-1">
-              Values refresh automatically; units are shown per row.
+              {t("network.tableCaptionHint")}
             </span>
           </caption>
           <thead>
             <tr className="border-b border-white/5 text-xs uppercase tracking-wider text-slate-500">
               <th scope="col" className="px-6 py-3 font-medium">
-                Metric
+                {t("network.metricColumn")}
               </th>
               <th scope="col" className="px-6 py-3 font-medium">
-                Value
+                {t("network.valueColumn")}
               </th>
               <th scope="col" className="px-6 py-3 font-medium">
-                Unit
+                {t("network.unitColumn")}
               </th>
             </tr>
           </thead>

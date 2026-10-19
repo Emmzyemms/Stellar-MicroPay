@@ -1,10 +1,11 @@
 {
   "name": "mock-horizon",
-  "version": "1.0.0",
-  "description": "Minimal Horizon API mock for integration testing",
+  "version": "1.1.0",
+  "description": "Configurable Horizon API mock for integration and failure testing",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node -e \"require('./server')\""
   },
   "dependencies": {
     "express": "^4.19.2"

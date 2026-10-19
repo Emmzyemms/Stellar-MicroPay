@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Head from "next/head";
 import Link from "next/link";
 import WalletConnect from "@/components/WalletConnect";
 import {
@@ -15,6 +16,7 @@ import { copyToClipboard } from "@/utils/format";
 import { useToast } from "@/lib/useToast";
 import { useRouter } from "next/router";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface Contact {
   id: string;
@@ -29,6 +31,7 @@ const FAV_TAB_KEY = "stellar-micropay-contacts-favourites-only";
 type ContactFilter = "all" | "favourites";
 
 export default function Contacts() {
+  const { t } = useTranslation();
   const { publicKey } = useWallet();
   const router = useRouter();
   const { visible: toastVisible, message: toastMessage, showToast } = useToast();
@@ -101,12 +104,12 @@ export default function Contacts() {
   // Create or update a contact
   const handleSaveContact = () => {
     if (!name.trim() || !address.trim()) {
-      showToast("Please enter both name and address");
+      showToast(t("contacts.errorBothRequired"));
       return;
     }
 
     if (!isValidStellarAddress(address)) {
-      showToast("Invalid Stellar address");
+      showToast(t("contacts.invalidAddress"));
       return;
     }
 
@@ -116,7 +119,7 @@ export default function Contacts() {
           c.id === editingId ? { ...c, name: name.trim(), address } : c
         )
       );
-      showToast("Contact updated");
+      showToast(t("contacts.updated"));
       setEditingId(null);
     } else {
       const newContact: Contact = {
@@ -126,7 +129,7 @@ export default function Contacts() {
         createdAt: Date.now(),
       };
       setContacts((prev) => [newContact, ...prev]);
-      showToast("Contact saved");
+      showToast(t("contacts.saved"));
     }
 
     setName("");
@@ -136,7 +139,7 @@ export default function Contacts() {
   // Delete a contact
   const handleDeleteContact = (id: string) => {
     setContacts((prev) => prev.filter((c) => c.id !== id));
-    showToast("Contact deleted");
+    showToast(t("contacts.deleted"));
   };
 
   // Start editing a contact
@@ -156,7 +159,7 @@ export default function Contacts() {
   // Resolve federation address
   const handleFederationLookup = async () => {
     if (!federationInput.trim()) {
-      showToast("Enter a federation address (user*domain.com)");
+      showToast(t("contacts.federationRequired"));
       return;
     }
 
@@ -169,10 +172,10 @@ export default function Contacts() {
         address: resolvedAddress,
         federationAddress: federationInput.trim(),
       });
-      showToast("Federation lookup successful");
+      showToast(t("contacts.federationSuccess"));
     } catch (err) {
       showToast(
-        err instanceof Error ? err.message : "Federation lookup failed"
+        err instanceof Error ? err.message : t("contacts.federationFailed")
       );
       setFederationResult(null);
     } finally {
@@ -186,7 +189,7 @@ export default function Contacts() {
     setAddress(federationResult.address);
     setFederationInput("");
     setFederationResult(null);
-    showToast("Address copied to form");
+    showToast(t("contacts.addressCopiedToForm"));
   };
 
   // Send XLM to a contact
@@ -202,7 +205,7 @@ export default function Contacts() {
   // Copy address to clipboard
   const handleCopyAddress = (addr: string) => {
     copyToClipboard(addr);
-    showToast("Address copied");
+    showToast(t("contacts.addressCopied"));
   };
 
   // Export contacts as JSON backup
@@ -227,9 +230,15 @@ export default function Contacts() {
         const existing = new Set(contacts.map((c) => c.address));
         const fresh = parsed.filter((c) => c?.address && !existing.has(c.address));
         setContacts((prev) => [...prev, ...fresh]);
-        showToast(`Imported ${fresh.length} contact(s)${parsed.length - fresh.length ? `, ${parsed.length - fresh.length} duplicate(s) skipped` : ""}`);
+        const imported = t("contacts.imported", { count: fresh.length });
+        const skipped = parsed.length - fresh.length;
+        showToast(
+          skipped > 0
+            ? `${imported} · ${t("contacts.duplicatesSkipped", { count: skipped })}`
+            : imported
+        );
       } catch {
-        showToast("Import failed: malformed JSON file");
+        showToast(t("contacts.importFailed"));
       }
     };
     reader.readAsText(file);
@@ -238,26 +247,35 @@ export default function Contacts() {
 
   if (!publicKey) {
     return (
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 cursor-default select-none">
+      <>
+        <Head>
+          <title>{t("pages.contacts.title")}</title>
+        </Head>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 cursor-default select-none">
         <div className="text-center mb-10">
           <h1 className="font-display text-3xl font-bold text-white mb-3">
-            {`Contacts`}
+            {t("contacts.title")}
           </h1>
-          <p className="text-slate-400">{`Connect your wallet to manage contacts`}</p>
+          <p className="text-slate-400">{t("contacts.connectPrompt")}</p>
         </div>
         <WalletConnect />
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
+    <>
+      <Head>
+        <title>{t("pages.contacts.title")}</title>
+      </Head>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-white mb-1">
-          {`Contacts`}
+          {t("contacts.title")}
         </h1>
-        <p className="text-slate-400">{`Save and manage Stellar addresses`}</p>
+        <p className="text-slate-400">{t("contacts.subtitle")}</p>
       </div>
 
       {!storageAvailable && (
@@ -265,7 +283,7 @@ export default function Contacts() {
           role="status"
           className="mb-6 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200"
         >
-          Contacts won&apos;t be saved in private/incognito mode
+          {t("contacts.storageUnavailable")}
         </div>
       )}
 
@@ -281,32 +299,32 @@ export default function Contacts() {
         <div className="card">
           <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <PlusIcon className="w-5 h-5 text-stellar-400" />
-            {editingId ? "Edit Contact" : "Add Contact"}
+            {editingId ? t("contacts.editContact") : t("contacts.addContact")}
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="label">{`Contact name`}</label>
+              <label className="label">{t("contacts.nameLabel")}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Alice, Daily Coffee"
+                placeholder={t("contacts.namePlaceholder")}
                 className="input-field"
               />
             </div>
 
             <div>
-              <label className="label">{`Stellar address`}</label>
+              <label className="label">{t("contacts.addressLabel")}</label>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="G... (56 character public key)"
+                placeholder={t("contacts.addressPlaceholder")}
                 className="input-field"
               />
               {address.length > 0 && !isValidStellarAddress(address) && (
-                <p className="mt-1 text-xs text-red-400">{`Invalid Stellar address`}</p>
+                <p className="mt-1 text-xs text-red-400">{t("contacts.invalidAddress")}</p>
               )}
             </div>
 
@@ -316,14 +334,14 @@ export default function Contacts() {
                 disabled={!name.trim() || !address.trim()}
                 className="btn-primary flex-1"
               >
-                {editingId ? "Update Contact" : "Save Contact"}
+                {editingId ? t("contacts.updateContact") : t("contacts.saveContact")}
               </button>
               {editingId && (
                 <button
                   onClick={handleCancelEdit}
                   className="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </button>
               )}
             </div>
@@ -334,29 +352,29 @@ export default function Contacts() {
         <div className="card">
           <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <SearchIcon className="w-5 h-5 text-stellar-400" />
-            {`Federation Lookup`}
+            {t("contacts.federationTitle")}
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="label">{`Federation address`}</label>
+              <label className="label">{t("contacts.federationLabel")}</label>
               <input
                 type="text"
                 value={federationInput}
                 onChange={(e) => setFederationInput(e.target.value)}
-                placeholder="user*domain.com"
+                placeholder={t("contacts.federationPlaceholder")}
                 className="input-field"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFederationLookup();
                 }}
               />
-              <p className="mt-1 text-xs text-slate-500">{`Resolve Stellar Federation addresses to public keys`}</p>
+              <p className="mt-1 text-xs text-slate-500">{t("contacts.federationHint")}</p>
             </div>
 
             {federationResult && (
               <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                 <p className="text-sm text-slate-300 mb-2">
-                  {`Resolved address:`}
+                  {t("contacts.resolvedAddress")}
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-xs bg-slate-950/50 p-2 rounded font-mono text-slate-300 break-all">
@@ -367,7 +385,7 @@ export default function Contacts() {
                     className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1.5 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
                   >
                     <CheckIcon className="w-3.5 h-3.5" />
-                    {`Use`}
+                    {t("contacts.use")}
                   </button>
                 </div>
               </div>
@@ -381,12 +399,12 @@ export default function Contacts() {
               {federationLoading ? (
                 <>
                   <Spinner />
-                  {`Looking up...`}
+                  {t("contacts.lookingUp")}
                 </>
               ) : (
                 <>
                   <SearchIcon className="w-4 h-4" />
-                  {`Resolve Address`}
+                  {t("contacts.resolveAddress")}
                 </>
               )}
             </button>
@@ -402,28 +420,28 @@ export default function Contacts() {
                 onClick={() => setFilter(tab)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${contactFilter === tab ? "bg-stellar-500/15 text-stellar-300 border border-stellar-500/30" : "text-slate-400 hover:text-white border border-transparent"}`}
               >
-                {tab === "all" ? "All" : "Favourites"}
+                {tab === "all" ? t("contacts.filterAll") : t("contacts.filterFavourites")}
               </button>
             ))}
           </div>
           <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <ContactsIcon className="w-5 h-5 text-stellar-400" />
-            {`Saved Contacts`}
+            {t("contacts.savedTitle")}
             <span className="ml-auto text-sm font-normal text-slate-400">
-              {contacts.length} {contacts.length === 1 ? "contact" : "contacts"}
+              {t("contacts.count", { count: contacts.length })}
             </span>
             <button
               onClick={handleExportContacts}
-              title="Export contacts as JSON"
+              title={t("contacts.exportTitle")}
               className="text-xs px-2.5 py-1 rounded-lg text-stellar-300 bg-stellar-500/10 border border-stellar-500/20 hover:bg-stellar-500/20 transition-colors"
             >
-              Export contacts
+              {t("contacts.export")}
             </button>
             <label
-              title="Import contacts from JSON"
+              title={t("contacts.importTitle")}
               className="text-xs px-2.5 py-1 rounded-lg text-stellar-300 bg-stellar-500/10 border border-stellar-500/20 hover:bg-stellar-500/20 transition-colors cursor-pointer"
             >
-              Import contacts
+              {t("contacts.import")}
               <input type="file" accept="application/json,.json" onChange={handleImportContacts} className="hidden" />
             </label>
           </h2>
@@ -436,7 +454,7 @@ export default function Contacts() {
                 <rect x="40" y="62" width="48" height="32" rx="4" stroke="#475569" strokeWidth="3" />
                 <circle cx="64" cy="78" r="7" stroke="#475569" strokeWidth="3" />
               </svg>
-              <p className="text-slate-400">{`No contacts yet — add one below ↓`}</p>
+              <p className="text-slate-400">{t("contacts.empty")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -457,7 +475,7 @@ export default function Contacts() {
                       {/* Favourite star toggle */}
                       <button
                         onClick={() => toggleFavourite(contact.id)}
-                        title={contact.favourite ? "Remove from Favourites" : "Add to Favourites"}
+                        title={contact.favourite ? t("contacts.removeFavourite") : t("contacts.addFavourite")}
                         aria-pressed={!!contact.favourite}
                         className={`p-2 rounded-lg transition-colors ${contact.favourite ? "text-amber-300 hover:bg-amber-400/10" : "text-slate-500 hover:text-amber-300 hover:bg-slate-700/50"}`}
                       >
@@ -467,7 +485,7 @@ export default function Contacts() {
                       {/* Copy button */}
                       <button
                         onClick={() => handleCopyAddress(contact.address)}
-                        title="Copy address"
+                        title={t("contacts.copyAddress")}
                         className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
                       >
                         <CopyIcon className="w-4 h-4" />
@@ -476,16 +494,16 @@ export default function Contacts() {
                       {/* Send XLM button */}
                       <button
                         onClick={() => handleSendXLM(contact)}
-                        title="Send XLM to this contact"
+                        title={t("contacts.sendToContact")}
                         className="px-3 py-2 rounded-lg text-sm font-medium text-stellar-300 bg-stellar-500/10 border border-stellar-500/20 hover:bg-stellar-500/20 hover:border-stellar-500/30 transition-colors"
                       >
-                        {`Send`}
+                        {t("contacts.send")}
                       </button>
 
                       {/* Edit button */}
                       <button
                         onClick={() => handleEditContact(contact)}
-                        title="Edit contact"
+                        title={t("contacts.edit")}
                         className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors"
                       >
                         <EditIcon className="w-4 h-4" />
@@ -494,7 +512,7 @@ export default function Contacts() {
                       {/* Delete button */}
                       <button
                         onClick={() => handleDeleteContact(contact.id)}
-                        title="Delete contact"
+                        title={t("contacts.delete")}
                         className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -513,10 +531,11 @@ export default function Contacts() {
           className="inline-flex items-center gap-2 text-sm text-stellar-400 hover:text-stellar-300 transition-colors"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          {`Back to dashboard`}
+          {t("contacts.backToDashboard")}
         </Link>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

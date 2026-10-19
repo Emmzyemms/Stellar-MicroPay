@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { LineChart, Line, Tooltip, ResponsiveContainer } from "recharts";
+import { formatTime, formatXLM } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface FeeDataPoint {
   timestamp: string;
@@ -16,6 +18,7 @@ interface FeeHistorySparklineProps {
 }
 
 export default function FeeHistorySparkline({ className = "" }: FeeHistorySparklineProps) {
+  const { t } = useTranslation();
   const [feeHistory, setFeeHistory] = useState<FeeDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +30,7 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
         const response = await fetch(`${apiBase}/api/network/fee-history`);
         
         if (!response.ok) {
-          throw new Error("Failed to fetch fee history");
+          throw new Error(t("feeSparkline.fetchFailed"));
         }
 
         const payload = await response.json();
@@ -36,18 +39,18 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
         }
       } catch (err) {
         console.error("Error fetching fee history:", err);
-        setError(err instanceof Error ? err.message : "Failed to load fee history");
+        setError(err instanceof Error ? err.message : t("feeSparkline.loadFailed"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchFeeHistory();
-  }, []);
+  }, [t]);
 
   // Convert stroops to XLM for display
   const chartData = feeHistory.map((point) => ({
-    time: new Date(point.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    time: formatTime(point.timestamp),
     fee: point.fee / 10_000_000, // Convert stroops to XLM
     timestamp: point.timestamp,
   }));
@@ -63,7 +66,7 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
   if (error || chartData.length === 0) {
     return (
       <div className={`h-16 flex items-center justify-center text-slate-400 text-sm ${className}`}>
-        {error || "No fee data available"}
+        {error || t("feeSparkline.noData")}
       </div>
     );
   }
@@ -87,7 +90,7 @@ export default function FeeHistorySparkline({ className = "" }: FeeHistorySparkl
                 return (
                   <div className="bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white shadow-lg">
                     <div className="font-semibold">{data.time}</div>
-                    <div>{data.fee.toFixed(7)} XLM</div>
+                    <div>{formatXLM(data.fee, { preserveTrailingZeros: true })}</div>
                   </div>
                 );
               }

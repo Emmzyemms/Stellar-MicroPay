@@ -26,13 +26,13 @@
     "date-fns": "^4.4.0",
     "next": "16.4.0",
     "qrcode.react": "^4.2.0",
-    "react": "19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "19.3.1",
+    "react-dom": "^19.3.1",
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.0",
-    "@testing-library/dom": "10.4.1",
+    "@playwright/test": "^1.64.1",
+    "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.1",
@@ -40,21 +40,30 @@
     "@types/node": "^26",
     "@types/qrcode.react": "^1.0.5",
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.2.2",
+    "@types/react-dom": "19.3.0",
     "autoprefixer": "^10.6.1",
     "eslint": "9.35.0",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.4.2",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.5.2",
-    "postcss": "8.5.29",
+    "postcss": "8.5.30",
     "serve": "14.2.6",
     "tailwindcss": "^3.4.1",
-    "ts-jest": "^29.4.12",
+    "ts-jest": "^29.4.15",
     "ts-node": "^10.9.2",
     "typescript": "^5"
   },
   "overrides": {
-    "toml": "npm:@iarna/toml@^2.2.5"
+    "toml": "^4.2.0",
+    "minimatch@3": {
+      "brace-expansion": "1.1.21"
+    },
+    "minimatch@9": {
+      "brace-expansion": "2.1.7"
+    },
+    "minimatch@10": {
+      "brace-expansion": "5.0.12"
+    }
   },
   "engines": {
     "node": "20.19.5"

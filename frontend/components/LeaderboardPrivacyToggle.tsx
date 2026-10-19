@@ -6,12 +6,14 @@
 
 import { useEffect, useState } from "react";
 import { getJwtToken } from "@/lib/auth";
+import { useTranslation } from "@/contexts/I18nContext";
 
 function apiBase(): string {
   return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
 }
 
 export default function LeaderboardPrivacyToggle() {
+  const { t } = useTranslation();
   const [optedOut, setOptedOut] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +28,8 @@ export default function LeaderboardPrivacyToggle() {
     })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((body) => setOptedOut(Boolean(body?.data?.optedOut)))
-      .catch(() => setError("Could not load your leaderboard preference."));
-  }, []);
+      .catch(() => setError(t("leaderboardPrivacy.loadError")));
+  }, [t]);
 
   const toggle = async (next: boolean) => {
     if (!token) return;
@@ -43,7 +45,7 @@ export default function LeaderboardPrivacyToggle() {
       const body = await res.json();
       setOptedOut(Boolean(body?.data?.optedOut));
     } catch {
-      setError("Could not save your leaderboard preference. Please try again.");
+      setError(t("leaderboardPrivacy.saveError"));
     } finally {
       setSaving(false);
     }
@@ -51,25 +53,24 @@ export default function LeaderboardPrivacyToggle() {
 
   return (
     <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Leaderboard privacy</h2>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{t("leaderboardPrivacy.title")}</h2>
       <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-        Hide your account from the public tip leaderboards and top tipper lists. Your tips still
-        count toward creator totals.
+        {t("leaderboardPrivacy.description")}
       </p>
       {!token ? (
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Sign in with your wallet to change this setting.
+          {t("leaderboardPrivacy.signInPrompt")}
         </p>
       ) : (
         <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
           <input
             type="checkbox"
-            aria-label="Hide me from leaderboards"
+            aria-label={t("leaderboardPrivacy.hideMe")}
             checked={optedOut === true}
             disabled={optedOut === null || saving}
             onChange={(e) => toggle(e.target.checked)}
           />
-          Hide me from leaderboards
+          {t("leaderboardPrivacy.hideMe")}
         </label>
       )}
       {error && <p role="alert" className="text-sm text-red-500 mt-2">{error}</p>}

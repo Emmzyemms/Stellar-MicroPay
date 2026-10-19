@@ -16,6 +16,7 @@ import Head from "next/head";
 import Link from "next/link";
 import type { Transaction } from "@stellar/stellar-sdk";
 import WalletConnect from "@/components/WalletConnect";
+import { formatAsset } from "@/utils/intlFormatters";
 import {
   ASSET_CODE_MAX_LENGTH,
   assetExplorerUrl,
@@ -34,14 +35,16 @@ import {
 } from "@/lib/stellar";
 import { getConnectedPublicKey, signTransactionWithWallet } from "@/lib/wallet";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 import { copyToClipboard } from "@/utils/format";
+import { useTranslation } from "@/contexts/I18nContext";
 
 const WIZARD_STEPS = [
-  { id: 1, title: "Asset code", hint: "1–12 uppercase characters" },
-  { id: 2, title: "Issuer", hint: "Account that issues the asset" },
-  { id: 3, title: "Distribute", hint: "Distributor trustline" },
-  { id: 4, title: "Issue", hint: "Send the asset" },
-  { id: 5, title: "Finalise", hint: "Home domain and summary" },
+  { id: 1, titleKey: "issueToken.assetCode", hintKey: "issueToken.assetCodeStepHint" },
+  { id: 2, titleKey: "issueToken.issuer", hintKey: "issueToken.issuerStepHint" },
+  { id: 3, titleKey: "issueToken.distribute", hintKey: "issueToken.distributeStepHint" },
+  { id: 4, titleKey: "issueToken.issue", hintKey: "issueToken.issueStepHint" },
+  { id: 5, titleKey: "issueToken.finalise", hintKey: "issueToken.finaliseStepHint" },
 ] as const;
 
 type StepId = (typeof WIZARD_STEPS)[number]["id"];
@@ -52,12 +55,13 @@ interface IssuanceTransactions {
   homeDomain?: string;
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Something went wrong.";
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function IssueTokenPage() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const network = getNetwork();
 
   const [step, setStep] = useState<StepId>(1);
@@ -84,18 +88,18 @@ export default function IssueTokenPage() {
   );
   const issuerError =
     issuer && !isValidStellarAddress(issuer)
-      ? "Enter a valid Stellar public key (G…)."
+      ? t("issueToken.invalidPublicKey")
       : null;
   const distributorError = distributor
     ? !isValidStellarAddress(distributor)
-      ? "Enter a valid Stellar public key (G…)."
+      ? t("issueToken.invalidPublicKey")
       : distributor === issuer
-      ? "The distributor must be a different account than the issuer."
+      ? t("issueToken.distributorMustDiffer")
       : null
     : null;
   const amountError =
     amount && (!Number.isFinite(Number(amount)) || Number(amount) <= 0)
-      ? "Enter an amount greater than 0."
+      ? t("issueToken.invalidAmount")
       : null;
   const homeDomainError = validateHomeDomain(homeDomain);
 
@@ -143,7 +147,10 @@ export default function IssueTokenPage() {
     const activeAccount = await getConnectedPublicKey();
     if (activeAccount && activeAccount !== expectedSigner) {
       throw new Error(
-        `Freighter is currently on ${shortenAddress(activeAccount)}. Switch it to ${shortenAddress(expectedSigner)} and try again.`
+        t("issueToken.freighterAccountMismatch", {
+          active: shortenAddress(activeAccount),
+          expected: shortenAddress(expectedSigner),
+        })
       );
     }
 
@@ -151,7 +158,7 @@ export default function IssueTokenPage() {
       transaction.toXDR()
     );
     if (signError || !signedXDR) {
-      throw new Error(signError || "Transaction signing was cancelled.");
+      throw new Error(signError || t("issueToken.signingCancelled"));
     }
 
     const result = await submitTransaction(signedXDR);
@@ -166,7 +173,7 @@ export default function IssueTokenPage() {
       await action();
       setSuccess(successMessage);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(errorMessage(err, t("issueToken.somethingWentWrong")));
     } finally {
       setBusy(false);
     }
@@ -185,7 +192,7 @@ export default function IssueTokenPage() {
       );
       setTransactions((current) => ({ ...current, trustline: hash }));
       return hash;
-    }, "Distributor trustline created.");
+    }, t("issueToken.trustlineCreated"));
 
   const handleIssue = () =>
     runStep(async () => {
@@ -201,7 +208,7 @@ export default function IssueTokenPage() {
       );
       setTransactions((current) => ({ ...current, issue: hash }));
       return hash;
-    }, "Asset issued to the distributor.");
+    }, t("issueToken.assetIssuedToDistributor"));
 
   const handleSetHomeDomain = () =>
     runStep(async () => {
@@ -212,7 +219,7 @@ export default function IssueTokenPage() {
       );
       setTransactions((current) => ({ ...current, homeDomain: hash }));
       return hash;
-    }, "Home domain set on the issuer account.");
+    }, t("issueToken.homeDomainSet"));
 
   const handleCopyToml = async () => {
     const ok = await copyToClipboard(toml);
@@ -225,10 +232,10 @@ export default function IssueTokenPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         <div className="text-center mb-10">
           <h1 className="font-display text-3xl font-bold text-white mb-3">
-            Issue a Token
+            {t("issueToken.pageTitle")}
           </h1>
           <p className="text-slate-400">
-            Connect your wallet to issue a custom Stellar asset.
+            {t("issueToken.connectPrompt")}
           </p>
         </div>
         <WalletConnect />
@@ -241,7 +248,7 @@ export default function IssueTokenPage() {
   return (
     <>
       <Head>
-        <title>Issue a Token | Stellar-MicroPay</title>
+        <title>{t("pages.issueToken.title")}</title>
         <meta
           name="description"
           content="Issue a custom Stellar asset: pick an asset code, set the issuer and distributor, create a trustline, issue the asset and publish a stellar.toml."
@@ -251,10 +258,10 @@ export default function IssueTokenPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 animate-fade-in">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold text-white mb-1">
-            Issue a Token
+            {t("issueToken.pageTitle")}
           </h1>
           <p className="text-slate-400 text-sm">
-            Create your own Stellar asset in five steps on{" "}
+            {t("issueToken.subtitleLead")}{" "}
             <span className="font-mono text-slate-300">{network}</span>.
           </p>
         </div>
@@ -262,7 +269,7 @@ export default function IssueTokenPage() {
         {/* Step indicator */}
         <ol
           className="mb-8 grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs"
-          aria-label="Issuance progress"
+          aria-label={t("issueToken.progressAria")}
         >
           {WIZARD_STEPS.map((entry) => {
             const isCurrent = entry.id === step;
@@ -280,10 +287,10 @@ export default function IssueTokenPage() {
                 }`}
               >
                 <span className="block font-medium">
-                  {entry.id}. {entry.title}
+                  {entry.id}. {t(entry.titleKey)}
                 </span>
                 <span className="block text-[11px] text-slate-500">
-                  {entry.hint}
+                  {t(entry.hintKey)}
                 </span>
               </li>
             );
@@ -292,9 +299,13 @@ export default function IssueTokenPage() {
 
         <div className="card">
           <h2 className="font-display text-xl font-semibold text-white mb-1">
-            Step {currentStep.id} of {WIZARD_STEPS.length}: {currentStep.title}
+            {t("issueToken.stepHeading", {
+              current: currentStep.id,
+              total: WIZARD_STEPS.length,
+              title: t(currentStep.titleKey),
+            })}
           </h2>
-          <p className="text-sm text-slate-400 mb-6">{currentStep.hint}</p>
+          <p className="text-sm text-slate-400 mb-6">{t(currentStep.hintKey)}</p>
 
           {error && (
             <p
@@ -320,7 +331,7 @@ export default function IssueTokenPage() {
                 htmlFor="asset-code"
                 className="block text-sm font-medium text-slate-300"
               >
-                Asset code
+                {t("issueToken.assetCode")}
               </label>
               <input
                 id="asset-code"
@@ -333,8 +344,8 @@ export default function IssueTokenPage() {
                 className="w-full px-3 py-2 rounded-lg border border-white/10 bg-cosmos-900 text-white font-mono uppercase focus:ring-2 focus:ring-stellar-500 focus:border-transparent"
               />
               <p id="asset-code-help" className="text-xs text-slate-500">
-                1–{ASSET_CODE_MAX_LENGTH} characters, uppercase letters and numbers
-                only. No spaces. <span className="font-mono">XLM</span> is reserved.
+                {t("issueToken.assetCodeHelp", { max: ASSET_CODE_MAX_LENGTH })}{" "}
+                <span className="font-mono">XLM</span> {t("issueToken.xlmReserved")}
               </p>
               {codeError && (
                 <p className="text-xs text-red-400" role="alert">
@@ -351,7 +362,7 @@ export default function IssueTokenPage() {
                 htmlFor="issuer"
                 className="block text-sm font-medium text-slate-300"
               >
-                Issuer account
+                {t("issueToken.issuerAccount")}
               </label>
               <input
                 id="issuer"
@@ -366,12 +377,12 @@ export default function IssueTokenPage() {
                   onClick={() => setIssuer(publicKey)}
                   className="text-stellar-400 hover:text-stellar-300"
                 >
-                  Use connected wallet
+                  {t("issueToken.useConnectedWallet")}
                 </button>
                 <span className="text-slate-500">
                   {issuer === publicKey
-                    ? "Using your connected wallet."
-                    : "Signing steps 4 and 5 requires Freighter on this account."}
+                    ? t("issueToken.usingConnectedWallet")
+                    : t("issueToken.freighterHint")}
                 </span>
               </div>
               {issuerError && (
@@ -390,7 +401,7 @@ export default function IssueTokenPage() {
                   htmlFor="distributor"
                   className="block text-sm font-medium text-slate-300"
                 >
-                  Distributor account
+                  {t("issueToken.distributorAccount")}
                 </label>
                 <input
                   id="distributor"
@@ -408,9 +419,7 @@ export default function IssueTokenPage() {
               </div>
 
               <p className="text-xs text-slate-500">
-                The distributor must sign this trustline itself, so switch
-                Freighter to the distributor account before signing. You can
-                import a second account into Freighter for this.
+                {t("issueToken.distributorSignHint")}
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -420,20 +429,20 @@ export default function IssueTokenPage() {
                   disabled={busy || !distributor || Boolean(distributorError)}
                   className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {busy ? "Waiting for signature…" : "Create trustline"}
+                  {busy ? t("issueToken.waitingForSignature") : t("issueToken.createTrustline")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTrustlineSkipped(true)}
                   className="btn-secondary"
                 >
-                  Distributor already trusts {assetCode || "this asset"}
+                  {t("issueToken.distributorTrusts", { asset: assetCode || t("issueToken.thisAsset") })}
                 </button>
               </div>
 
               {transactions.trustline && (
                 <p className="text-xs text-emerald-300">
-                  Trustline transaction:{" "}
+                  {t("issueToken.trustlineTransaction")}{" "}
                   <a
                     href={explorerUrl(transactions.trustline)}
                     target="_blank"
@@ -454,7 +463,7 @@ export default function IssueTokenPage() {
                 htmlFor="issue-amount"
                 className="block text-sm font-medium text-slate-300"
               >
-                Amount of {assetCode} to issue
+                {t("issueToken.amountToIssue", { asset: assetCode })}
               </label>
               <input
                 id="issue-amount"
@@ -470,8 +479,9 @@ export default function IssueTokenPage() {
                 </p>
               )}
               <p className="text-xs text-slate-500">
-                This payment moves {assetCode || "the asset"} from{" "}
-                <span className="font-mono">{shortenAddress(issuer)}</span> to{" "}
+                {t("issueToken.paymentMovesLead", { asset: assetCode || t("issueToken.theAsset") })}{" "}
+                <span className="font-mono">{shortenAddress(issuer)}</span>{" "}
+                {t("issueToken.paymentMovesTo")}{" "}
                 <span className="font-mono">{shortenAddress(distributor)}</span>.
               </p>
 
@@ -481,12 +491,12 @@ export default function IssueTokenPage() {
                 disabled={busy || Boolean(amountError)}
                 className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {busy ? "Waiting for signature…" : `Issue ${assetCode}`}
+                {busy ? t("issueToken.waitingForSignature") : t("issueToken.issueAsset", { asset: assetCode })}
               </button>
 
               {transactions.issue && (
                 <p className="text-xs text-emerald-300">
-                  Issuance transaction:{" "}
+                  {t("issueToken.issuanceTransaction")}{" "}
                   <a
                     href={explorerUrl(transactions.issue)}
                     target="_blank"
@@ -508,7 +518,7 @@ export default function IssueTokenPage() {
                   htmlFor="home-domain"
                   className="block text-sm font-medium text-slate-300"
                 >
-                  Home domain (optional)
+                  {t("issueToken.homeDomainOptional")}
                 </label>
                 <div className="flex flex-wrap gap-3">
                   <input
@@ -525,7 +535,7 @@ export default function IssueTokenPage() {
                     disabled={busy || Boolean(homeDomainError) || !homeDomain}
                     className="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {busy ? "Waiting for signature…" : "Set home domain"}
+                    {busy ? t("issueToken.waitingForSignature") : t("issueToken.setHomeDomain")}
                   </button>
                 </div>
                 {homeDomainError && (
@@ -535,7 +545,7 @@ export default function IssueTokenPage() {
                 )}
                 {transactions.homeDomain && (
                   <p className="text-xs text-emerald-300">
-                    Home domain set:{" "}
+                    {t("issueToken.homeDomainSetLabel")}{" "}
                     <a
                       href={explorerUrl(transactions.homeDomain)}
                       target="_blank"
@@ -553,25 +563,25 @@ export default function IssueTokenPage() {
                   stellar.toml
                 </h3>
                 <p className="text-xs text-slate-400 mb-3">
-                  Publish this file at{" "}
+                  {t("issueToken.publishTomlLead")}{" "}
                   <span className="font-mono text-slate-300">
                     {stellarTomlUrl(homeDomain || "yourdomain.com")}
                   </span>{" "}
-                  so wallets and explorers can discover the asset.
+                  {t("issueToken.publishTomlTail")}
                 </p>
                 <pre className="max-h-56 overflow-auto rounded-lg bg-cosmos-900 p-3 text-[11px] leading-relaxed text-slate-300">
                   {toml}
                 </pre>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button type="button" onClick={handleCopyToml} className="btn-secondary">
-                    {copied ? "Copied!" : "Copy stellar.toml"}
+                    {copied ? t("issueToken.copied") : t("issueToken.copyToml")}
                   </button>
                   <a
                     href={`data:text/plain;charset=utf-8,${encodeURIComponent(toml)}`}
                     download="stellar.toml"
                     className="btn-secondary"
                   >
-                    Download stellar.toml
+                    {t("issueToken.downloadToml")}
                   </a>
                 </div>
               </div>
@@ -579,44 +589,44 @@ export default function IssueTokenPage() {
               {/* Asset summary */}
               <div className="rounded-xl border border-stellar-500/20 bg-stellar-500/5 p-4">
                 <h3 className="font-display text-base font-semibold text-white mb-3">
-                  {assetCode} issued
+                  {t("issueToken.assetIssued", { asset: assetCode })}
                 </h3>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Asset code
+                      {t("issueToken.assetCode")}
                     </dt>
                     <dd className="font-mono text-white">{assetCode}</dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Network
+                      {t("issueToken.network")}
                     </dt>
                     <dd className="font-mono text-white">{network}</dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Issuer
+                      {t("issueToken.issuer")}
                     </dt>
                     <dd className="font-mono text-white break-all">{issuer}</dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Distributor
+                      {t("issueToken.distributor")}
                     </dt>
                     <dd className="font-mono text-white break-all">{distributor}</dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Amount issued
+                      {t("issueToken.amountIssued")}
                     </dt>
                     <dd className="font-mono text-white">
-                      {Number(amount).toLocaleString("en-US")} {assetCode}
+                      {formatAsset(amount, assetCode)}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">
-                      Home domain
+                      {t("issueToken.homeDomain")}
                     </dt>
                     <dd className="font-mono text-white">{homeDomain || "—"}</dd>
                   </div>
@@ -628,7 +638,7 @@ export default function IssueTokenPage() {
                   rel="noopener noreferrer"
                   className="btn-primary mt-4 inline-flex"
                 >
-                  View {assetCode} on Stellar Expert ↗
+                  {t("issueToken.viewOnStellarExpert", { asset: assetCode })}
                 </a>
               </div>
             </div>
@@ -646,7 +656,7 @@ export default function IssueTokenPage() {
               disabled={step === 1 || busy}
               className="btn-secondary disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Back
+              {t("issueToken.back")}
             </button>
 
             {step < 5 ? (
@@ -660,11 +670,11 @@ export default function IssueTokenPage() {
                 disabled={!canContinue || busy}
                 className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Continue
+                {t("issueToken.continue")}
               </button>
             ) : (
               <Link href="/dashboard" className="btn-primary">
-                Back to dashboard
+                {t("issueToken.backToDashboard")}
               </Link>
             )}
           </div>

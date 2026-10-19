@@ -15,6 +15,7 @@ import {
   submitTransaction,
 } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface AddUsdcTrustlineProps {
   publicKey: string | null;
@@ -25,6 +26,7 @@ export default function AddUsdcTrustline({
   publicKey,
   onTrustlineAdded,
 }: AddUsdcTrustlineProps) {
+  const { t } = useTranslation();
   const [hasTrustline, setHasTrustline] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -45,16 +47,18 @@ export default function AddUsdcTrustline({
           publicKey
         )}/has-usdc-trustline`
       );
-      if (!res.ok) throw new Error(`Trustline check failed: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(t("trustline.checkFailed", { status: res.status }));
+      }
       const payload = await res.json();
       setHasTrustline(Boolean(payload?.hasTrustline));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Trustline check failed.");
+      setError(err instanceof Error ? err.message : t("trustline.checkFailedFallback"));
       setHasTrustline(null);
     } finally {
       setChecking(false);
     }
-  }, [publicKey]);
+  }, [publicKey, t]);
 
   useEffect(() => {
     void checkTrustline();
@@ -74,17 +78,17 @@ export default function AddUsdcTrustline({
         tx.toXDR()
       );
       if (signError || !signedXDR) {
-        throw new Error(signError || "Freighter signing failed.");
+        throw new Error(signError || t("trustline.signFailed"));
       }
       await submitTransaction(signedXDR);
       setHasTrustline(true);
       onTrustlineAdded?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Add USDC failed.");
+      setError(err instanceof Error ? err.message : t("trustline.addFailedFallback"));
     } finally {
       setSubmitting(false);
     }
-  }, [publicKey, submitting, onTrustlineAdded]);
+  }, [publicKey, submitting, onTrustlineAdded, t]);
 
   if (!publicKey || checking || hasTrustline !== false) {
     return null;
@@ -97,10 +101,9 @@ export default function AddUsdcTrustline({
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="font-semibold text-white mb-1">Enable USDC</p>
+          <p className="font-semibold text-white mb-1">{t("trustline.enableTitle")}</p>
           <p className="text-sm text-slate-400">
-            Your wallet doesn&apos;t trust USDC yet. Add the trustline to see
-            your USDC balance here.
+            {t("trustline.description")}
           </p>
           {error && (
             <p className="text-sm text-red-300 mt-2" role="alert">
@@ -114,7 +117,7 @@ export default function AddUsdcTrustline({
           disabled={submitting}
           className="inline-flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm py-2 px-4 rounded-lg transition-colors cursor-pointer"
         >
-          {submitting ? "Adding USDC…" : "Add USDC"}
+          {submitting ? t("trustline.adding") : t("trustline.add")}
         </button>
       </div>
     </div>

@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import { getNetworkConfig, setNetworkConfig, NetworkConfig } from "@/lib/stellar";
 import { disconnectWallet } from "@/lib/wallet";
 import { shortenAddress } from "@/lib/stellar";
@@ -16,6 +16,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
+  isLocale,
   type Locale,
 } from "@/lib/i18n";
 import WalletHealthPanel from "@/components/WalletHealthPanel";
@@ -24,7 +25,7 @@ import LeaderboardPrivacyToggle from "@/components/LeaderboardPrivacyToggle";
 export default function SettingsPage() {
   const router = useRouter();
   const { publicKey, disconnectWallet: disconnectCurrentWallet } = useWallet();
-  const { t, locale, setLocale } = useTranslation();
+  const { t, locale, setLocale, resetLocale } = useTranslation();
   const [config, setConfig] = useState<NetworkConfig>({
     network: "testnet",
     horizonUrl: "https://horizon-testnet.stellar.org",
@@ -32,9 +33,7 @@ export default function SettingsPage() {
   const [customUrl, setCustomUrl] = useState("");
   const [showMainnetWarning, setShowMainnetWarning] = useState(false);
   const [pendingNetwork, setPendingNetwork] = useState<"testnet" | "mainnet" | "custom" | null>(null);
-  const [fiatCurrency, setFiatCurrency] = useState<string>("USD");
-  useEffect(() => { setFiatCurrency(localStorage.getItem("stellar-micropay:fiat") || "USD"); }, []);
-  const changeFiatCurrency = (code: string) => { setFiatCurrency(code); localStorage.setItem("stellar-micropay:fiat", code); };
+  const [fiatCurrency, setFiatCurrency] = useState<FiatCurrency>("USD");
 
   // Username registration state
   const [username, setUsername] = useState("");
@@ -113,18 +112,18 @@ export default function SettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create price alert");
+        throw new Error(t("settings.priceAlert.createFailed"));
       }
 
       const payload = await response.json();
       if (payload?.success) {
         setPriceAlerts([...priceAlerts, payload.data]);
         setPriceAlertForm({ asset: "XLM", direction: "above", targetPrice: "" });
-        setPriceAlertSuccess("Price alert created successfully");
+        setPriceAlertSuccess(t("settings.priceAlert.created"));
       }
     } catch (err) {
       console.error("Failed to create price alert:", err);
-      setPriceAlertError(err instanceof Error ? err.message : "Failed to create price alert");
+      setPriceAlertError(err instanceof Error ? err.message : t("settings.priceAlert.createFailed"));
     } finally {
       setPriceAlertLoading(false);
     }
@@ -176,7 +175,17 @@ export default function SettingsPage() {
     if (currentConfig.network === "custom") {
       setCustomUrl(currentConfig.horizonUrl);
     }
+    setFiatCurrency(getFiatCurrencyPreference());
   }, []);
+
+  const handleCurrencyChange = (currency: FiatCurrency) => {
+    setFiatCurrency(currency);
+    setFiatCurrencyPreference(currency);
+    // Notify same-tab listeners (e.g. dashboard) of the change.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("stellar-micropay:fiat-currency-change"));
+    }
+  };
 
   const handleNetworkChange = (network: "testnet" | "mainnet" | "custom") => {
     if (network === "mainnet" && config.network !== "mainnet") {
@@ -280,7 +289,7 @@ export default function SettingsPage() {
   };
 
   const handleClearAllData = () => {
-    if (!window.confirm("Are you sure? This will delete your contacts and settings.")) return;
+    if (!window.confirm(t("settings.clearDataConfirm"))) return;
     Object.keys(localStorage).filter((k) => k.startsWith("stellar-micropay:")).forEach((k) => localStorage.removeItem(k));
     disconnectCurrentWallet();
     void router.push("/");
@@ -295,7 +304,7 @@ export default function SettingsPage() {
   return (
     <>
       <Head>
-        <title>Settings - Stellar MicroPay</title>
+        <title>{t("pages.settings.title")}</title>
       </Head>
       <div className="min-h-screen bg-white dark:bg-cosmos-900">
         <main className="mx-auto max-w-2xl px-4 py-8">
@@ -309,7 +318,11 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {/* Language picker — persists the locale to localStorage (#1145). */}
+            {/*
+              Language picker — a manual choice is persisted and wins over
+              browser detection on later visits; the reset button hands control
+              back to detection (#1145, #1459).
+            */}
             <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
               <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
                 {t("settings.language.title")}
@@ -324,7 +337,11 @@ export default function SettingsPage() {
               <select
                 id="language-select"
                 value={locale}
-                onChange={(event) => setLocale(event.target.value as Locale)}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  // `setLocale` persists the choice, which then wins over detection.
+                  if (isLocale(next)) setLocale(next);
+                }}
                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-cosmos-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-stellar-500 focus:border-transparent"
               >
                 {SUPPORTED_LOCALES.map((supportedLocale) => (
@@ -333,9 +350,18 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                {t("settings.language.hint")}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t("settings.language.hint")}
+                </p>
+                <button
+                  type="button"
+                  onClick={resetLocale}
+                  className="text-xs font-medium text-stellar-500 hover:text-stellar-400 transition-colors"
+                >
+                  {t("settings.language.useBrowser")}
+                </button>
+              </div>
             </div>
 
             <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
@@ -414,7 +440,49 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {publicKey && <LeaderboardPrivacyToggle />}
+            {/* Display currency (#1149) */}
+            <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                {t("settings.fiat.title")}
+              </h2>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                {t("settings.fiat.label")}
+              </label>
+              <div className="grid grid-cols-4 gap-3">
+                {SUPPORTED_FIAT_CURRENCIES.map((currency) => (
+                  <button
+                    key={currency}
+                    onClick={() => handleCurrencyChange(currency)}
+                    className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
+                      fiatCurrency === currency
+                        ? "border-stellar-500 bg-stellar-500/10 text-stellar-400"
+                        : "border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500"
+                    }`}
+                  >
+                    {currency}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                {t("settings.fiat.hint")}
+              </p>
+            </div>
+
+            {/* Automation — Turrets DCA / Stop-Loss wizard (#1148) */}
+            <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                {t("settings.automation.title")}
+              </h2>
+              <TurretsWizard />
+            </div>
+
+            {/* On/Off Ramp — SEP-0006 anchor integration (#1142) */}
+            <div className="bg-white dark:bg-cosmos-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                {t("settings.ramp.title")}
+              </h2>
+              <AnchorRamp />
+            </div>
 
             {/* Username Registration Section */}
             {publicKey ? (
@@ -515,14 +583,14 @@ export default function SettingsPage() {
                   <svg className="w-5 h-5 text-stellar-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  Price Alerts
+                  {t("settings.priceAlert.title")}
                 </h2>
 
                 <form onSubmit={handleCreatePriceAlert} className="space-y-4 mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Asset
+                        {t("settings.priceAlert.assetLabel")}
                       </label>
                       <select
                         value={priceAlertForm.asset}
@@ -534,20 +602,20 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Direction
+                        {t("settings.priceAlert.directionLabel")}
                       </label>
                       <select
                         value={priceAlertForm.direction}
                         onChange={(e) => setPriceAlertForm({ ...priceAlertForm, direction: e.target.value as 'above' | 'below' })}
                         className="w-full px-3 py-2 bg-slate-50 dark:bg-cosmos-900 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white"
                       >
-                        <option value="above">Above</option>
-                        <option value="below">Below</option>
+                        <option value="above">{t("settings.priceAlert.above")}</option>
+                        <option value="below">{t("settings.priceAlert.below")}</option>
                       </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Target Price (USD)
+                        {t("settings.priceAlert.targetPriceLabel")}
                       </label>
                       <input
                         type="number"
@@ -564,7 +632,7 @@ export default function SettingsPage() {
                     disabled={priceAlertLoading}
                     className="btn-primary w-full"
                   >
-                    {priceAlertLoading ? "Creating..." : "Create Alert"}
+                    {priceAlertLoading ? t("settings.priceAlert.creating") : t("settings.priceAlert.create")}
                   </button>
                 </form>
 
@@ -582,7 +650,7 @@ export default function SettingsPage() {
 
                 {priceAlerts.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">Your Alerts</h3>
+                    <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("settings.priceAlert.yourAlerts")}</h3>
                     {priceAlerts.map((alert) => (
                       <div
                         key={alert.id}
@@ -590,17 +658,17 @@ export default function SettingsPage() {
                       >
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            {alert.asset} {alert.direction} ${alert.targetPrice}
+                            {alert.asset} {alert.direction === 'above' ? t("settings.priceAlert.above") : t("settings.priceAlert.below")} ${alert.targetPrice}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {alert.triggered ? "Triggered" : "Active"}
+                            {alert.triggered ? t("settings.priceAlert.triggered") : t("settings.priceAlert.active")}
                           </p>
                         </div>
                         <button
                           onClick={() => handleDeletePriceAlert(alert.id)}
                           className="text-red-400 hover:text-red-300 text-sm"
                         >
-                          Delete
+                          {t("settings.priceAlert.delete")}
                         </button>
                       </div>
                     ))}
@@ -610,7 +678,7 @@ export default function SettingsPage() {
                 {!('Notification' in window) && (
                   <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                     <p className="text-xs text-amber-400">
-                      Your browser does not support notifications. Alerts will be shown as a banner on the dashboard.
+                      {t("settings.priceAlert.noNotificationSupport")}
                     </p>
                   </div>
                 )}

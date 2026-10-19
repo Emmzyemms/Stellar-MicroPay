@@ -12,12 +12,19 @@ import {
   PaymentRecord,
   PaymentHistoryResponse,
 } from "@/lib/stellar";
-import { formatAsset, timeAgo, copyToClipboard, exportFilteredTransactionsToCSV } from "@/utils/format";
+import { copyToClipboard, exportFilteredTransactionsToCSV } from "@/utils/format";
+import {
+  formatAsset,
+  formatDateTimeShort,
+  formatRelativeTime,
+} from "@/utils/intlFormatters";
 import { loadAllPaymentNotes, savePaymentNote } from "@/lib/usePaymentNotes";
 import { useToast } from "@/lib/useToast";
 import { isReceiptEligible } from "@/lib/receipts";
+import { useTranslation } from "@/contexts/I18nContext";
 import Toast from "@/components/Toast";
 import clsx from "clsx";
+import { AssetBadge } from "@/components/AssetBadge";
 
 export type TransactionDirectionFilter = "all" | "sent" | "received";
 
@@ -96,12 +103,7 @@ function savePaymentHistorySnapshot(
 }
 
 function formatSnapshotTime(savedAt: number) {
-  return new Date(savedAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeShort(savedAt);
 }
 
 export function matchesPaymentSearch(payment: PaymentRecord, rawQuery: string): boolean {
@@ -200,6 +202,7 @@ export default function TransactionList({
   hideSearchBar = false,
 }: TransactionListProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -247,7 +250,7 @@ export default function TransactionList({
   const handleRepeatPayment = (tx: PaymentRecord) => {
     const targetAddress = tx.type === "sent" ? tx.to : tx.from;
     const shortAddr = shortenAddress(targetAddress, 4);
-    showToast(`Repeating payment to ${shortAddr}`);
+    showToast(t("transactionList.repeatingPayment", { address: shortAddr }));
     if (onRepeatPayment) {
       onRepeatPayment(tx);
     }
@@ -364,14 +367,14 @@ export default function TransactionList({
           return;
         }
 
-        setError("Could not load transaction history.");
+        setError(t("transactionList.loadFailed"));
         console.error(err);
       } finally {
         setLoading(false);
         setLoadingMore(false);
       }
     },
-    [publicKey, limit, nextCursor, updatePayments, onPaymentsChange]
+    [publicKey, limit, nextCursor, updatePayments, onPaymentsChange, t]
   );
 
   useEffect(() => {
@@ -493,7 +496,7 @@ export default function TransactionList({
             onClick={() => fetchPayments()}
             className="btn-secondary text-sm py-2 px-4"
           >
-            Try again
+            {t("transactionList.tryAgain")}
           </button>
         </div>
       </div>
@@ -507,9 +510,9 @@ export default function TransactionList({
           <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
             <HistoryIcon className="w-6 h-6 text-slate-500" />
           </div>
-          <p className="text-slate-400 text-sm">No transactions yet</p>
+          <p className="text-slate-400 text-sm">{t("transactionList.emptyTitle")}</p>
           <p className="text-slate-600 text-xs mt-1">
-            Send your first payment to get started
+            {t("transactionList.emptyHint")}
           </p>
         </div>
       </div>
@@ -522,7 +525,7 @@ export default function TransactionList({
         <div className="flex items-center justify-between mb-6">
           <h2 className="font-display text-lg font-semibold text-white flex items-center gap-2">
             <HistoryIcon className="w-5 h-5 text-stellar-400" />
-            Recent Payments
+            {t("transactionList.recentPayments")}
           </h2>
           <div className="flex items-center gap-4">
             {/* Export CSV — exports the currently filtered and loaded rows
@@ -532,7 +535,7 @@ export default function TransactionList({
               type="button"
               onClick={handleExportCsv}
               disabled={loading || loadingMore || visiblePayments.length === 0}
-              title="Export the currently filtered transactions as CSV"
+              title={t("transactionList.exportCsvTitle")}
               data-testid="export-csv-button"
               className={clsx(
                 "text-xs transition-colors flex items-center gap-1 cursor-pointer",
@@ -542,14 +545,14 @@ export default function TransactionList({
               )}
             >
               <DownloadIcon className="w-3.5 h-3.5" />
-              Export CSV
+              {t("transactionList.exportCsv")}
             </button>
             <button
               onClick={() => fetchPayments()}
               className="text-xs text-slate-500 hover:text-stellar-400 transition-colors flex items-center gap-1 cursor-pointer"
             >
               <RefreshIcon className="w-3.5 h-3.5" />
-              Refresh
+              {t("transactionList.refresh")}
             </button>
           </div>
         </div>
@@ -565,16 +568,16 @@ export default function TransactionList({
             type="text"
             value={searchInputValue}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by address, memo, or amount (e.g. >10 XLM)..."
+            placeholder={t("transactionList.searchPlaceholder")}
             className="input-field pl-9 pr-8 py-2 text-sm w-full bg-white/[0.04] border-white/10 rounded-xl focus:border-stellar-400"
-            aria-label="Search transactions"
+            aria-label={t("transactionList.searchLabel")}
           />
           {searchInputValue && (
             <button
               type="button"
               onClick={() => handleSearchChange("")}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-200 cursor-pointer"
-              aria-label="Clear search"
+              aria-label={t("transactionList.clearSearch")}
             >
               <CloseIcon className="w-3.5 h-3.5" />
             </button>
@@ -584,13 +587,13 @@ export default function TransactionList({
 
       {stalePaymentsAt && (
         <div className="mb-4 inline-flex items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-200">
-          Offline history snapshot from {formatSnapshotTime(stalePaymentsAt)}
+          {t("transactionList.offlineSnapshot", { time: formatSnapshotTime(stalePaymentsAt) })}
         </div>
       )}
 
       <div className="mb-4 flex items-center gap-3 text-xs text-stellar-400">
         <span className="w-1 h-1 rounded-full bg-stellar-400 flex-shrink-0" />
-        <span>Keyboard navigation: ↑ ↓ to navigate, Enter to copy address</span>
+        <span>{t("transactionList.keyboardNav")}</span>
       </div>
 
       <div className="space-y-2">
@@ -599,15 +602,15 @@ export default function TransactionList({
             <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-white/5 flex items-center justify-center text-slate-500">
               <SearchIcon className="w-5 h-5" />
             </div>
-            <p className="text-slate-300 text-sm font-medium">No matching transactions found</p>
-            <p className="text-slate-500 text-xs mt-1">Try adjusting your search query or filters</p>
+            <p className="text-slate-300 text-sm font-medium">{t("transactionList.noMatches")}</p>
+            <p className="text-slate-500 text-xs mt-1">{t("transactionList.noMatchesHint")}</p>
             {searchInputValue && (
               <button
                 type="button"
                 onClick={() => handleSearchChange("")}
                 className="mt-3 text-xs text-stellar-400 hover:text-stellar-300 font-medium cursor-pointer"
               >
-                Clear search
+                {t("transactionList.clearSearch")}
               </button>
             )}
           </div>
@@ -639,7 +642,7 @@ export default function TransactionList({
                   "flex items-center gap-3 p-3 rounded-xl bg-white/3 hover:bg-white/5 transition-colors group relative",
                   focusedIndex === index && "outline-none ring-2 ring-stellar-500 ring-offset-2"
                 )}
-                aria-label={`${tx.type === "sent" ? "Sent" : "Received"} ${formatAsset(tx.amount, tx.asset)} ${tx.type === "sent" ? "to" : "from"} ${tx.type === "sent" ? tx.to : tx.from}`}
+                aria-label={`${tx.type === "sent" ? t("transactionList.sent") : t("transactionList.received")} ${formatAsset(tx.amount, tx.asset)} ${tx.type === "sent" ? t("transactionList.to") : t("transactionList.from")} ${tx.type === "sent" ? tx.to : tx.from}`}
               >
                 {/* Direction icon */}
                 <div
@@ -661,7 +664,7 @@ export default function TransactionList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-slate-200 capitalize">
-                      {tx.type === "sent" ? "Sent to" : "Received from"}
+                      {tx.type === "sent" ? t("transactionList.sentTo") : t("transactionList.receivedFrom")}
                     </span>
                     <button
                       type="button"
@@ -671,17 +674,17 @@ export default function TransactionList({
                           tx.id
                         )
                       }
-                      aria-label={`Copy ${tx.type === "sent" ? "recipient" : "sender"} address`}
+                      aria-label={tx.type === "sent" ? t("transactionList.copyRecipientAddress") : t("transactionList.copySenderAddress")}
                       className="address-pill hover:border-stellar-500/40 transition-colors text-xs cursor-pointer"
                     >
                       {copiedId === tx.id
-                        ? "Copied!"
+                        ? t("common.copied")
                         : shortenAddress(tx.type === "sent" ? tx.to : tx.from, 5)}
                     </button>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-slate-500">
-                      {timeAgo(tx.createdAt)}
+                      {formatRelativeTime(tx.createdAt)}
                     </span>
                     {tx.memo && (
                       <span className="text-xs text-slate-600 truncate max-w-32">
@@ -708,7 +711,7 @@ export default function TransactionList({
                           if (e.key === "Enter") handleSaveNote(tx.transactionHash);
                           if (e.key === "Escape") handleCancelEditNote();
                         }}
-                        placeholder="Private note (local only)…"
+                        placeholder={t("transactionList.notePlaceholder")}
                         maxLength={200}
                         autoFocus
                         className="flex-1 text-xs bg-white/5 border border-white/10 rounded-md px-2 py-1 text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-stellar-500/40"
@@ -717,7 +720,7 @@ export default function TransactionList({
                         onClick={() => handleSaveNote(tx.transactionHash)}
                         className="text-xs text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded cursor-pointer"
                       >
-                        Save
+                        {t("transactionList.save")}
                       </button>
                       <button
                         onClick={handleCancelEditNote}
@@ -746,8 +749,8 @@ export default function TransactionList({
                     <button
                       onClick={() => handleStartEditNote(tx.transactionHash)}
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-slate-400 hover:text-stellar-400 px-1 py-0.5 rounded cursor-pointer"
-                      title={notes[tx.transactionHash] ? "Edit note" : "Add note (stored locally)"}
-                      aria-label={notes[tx.transactionHash] ? "Edit note" : "Add note"}
+                      title={notes[tx.transactionHash] ? t("transactionList.editNote") : t("transactionList.addNote")}
+                      aria-label={notes[tx.transactionHash] ? t("transactionList.editNote") : t("transactionList.addNoteLabel")}
                     >
                       {notes[tx.transactionHash] ? "✏️" : "📝"}
                     </button>
@@ -761,11 +764,11 @@ export default function TransactionList({
                       handleRepeatPayment(tx);
                     }}
                     className="inline-flex items-center gap-1 text-xs font-medium text-stellar-400 hover:text-stellar-300 bg-stellar-500/10 hover:bg-stellar-500/20 px-2 py-1 rounded transition-colors whitespace-nowrap cursor-pointer"
-                    title="Repeat payment with same destination, amount, and memo"
-                    aria-label={`Repeat payment to ${shortenAddress(targetAddress, 4)}`}
+                    title={t("transactionList.repeatTitle")}
+                    aria-label={t("transactionList.repeatPaymentTo", { address: shortenAddress(targetAddress, 4) })}
                   >
                     <RepeatIcon className="w-3 h-3" />
-                    Repeat
+                    {t("transactionList.repeat")}
                   </button>
 
                   {onPrintReceipt && (
@@ -776,8 +779,8 @@ export default function TransactionList({
                         onPrintReceipt(tx);
                       }}
                       className="text-slate-500 hover:text-stellar-400 px-1 py-0.5 rounded transition-colors cursor-pointer"
-                      title="Print receipt"
-                      aria-label={`Print receipt for transaction ${tx.transactionHash.slice(0, 8)}`}
+                      title={t("transactionList.printReceipt")}
+                      aria-label={t("transactionList.printReceiptFor", { hash: tx.transactionHash.slice(0, 8) })}
                     >
                       <PrinterIcon className="w-3.5 h-3.5" />
                     </button>
@@ -790,7 +793,7 @@ export default function TransactionList({
                         className="inline-flex items-center text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded whitespace-nowrap"
                         data-testid={`receipt-minted-${tx.id}`}
                       >
-                        {`Receipt #${mintedReceiptHashes[tx.transactionHash]}`}
+                        {t("transactionList.receiptNumber", { index: mintedReceiptHashes[tx.transactionHash] })}
                       </span>
                     ) : (
                       <button
@@ -801,10 +804,10 @@ export default function TransactionList({
                         }}
                         disabled={mintingReceiptHash !== null}
                         className="inline-flex items-center gap-1 text-xs font-medium text-amber-300 hover:text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded transition-colors whitespace-nowrap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Mint an on-chain receipt for this payment (signs with your wallet)"
-                        aria-label={`Mint receipt for payment to ${shortenAddress(targetAddress, 4)}`}
+                        title={t("transactionList.mintReceiptTitle")}
+                        aria-label={t("transactionList.mintReceiptFor", { address: shortenAddress(targetAddress, 4) })}
                       >
-                        {mintingReceiptHash === tx.transactionHash ? "Minting…" : "Mint receipt"}
+                        {mintingReceiptHash === tx.transactionHash ? t("transactionList.minting") : t("transactionList.mintReceipt")}
                       </button>
                     )
                   )}
@@ -814,8 +817,8 @@ export default function TransactionList({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-stellar-400"
-                    title="View on Stellar Expert"
-                    aria-label="View transaction on Stellar Expert"
+                    title={t("transactionList.viewOnStellarExpert")}
+                    aria-label={t("transactionList.viewTxOnStellarExpert")}
                   >
                     <ExternalLinkIcon className="w-3.5 h-3.5" />
                   </a>
@@ -831,7 +834,7 @@ export default function TransactionList({
             ref={sentinelRef}
             className="flex justify-center py-4"
             aria-live="polite"
-            aria-label="Loading more transactions"
+            aria-label={t("transactionList.loadingMore")}
           >
             {loadingMore && (
               <div className="w-5 h-5 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
@@ -850,10 +853,10 @@ export default function TransactionList({
               {loadingMore ? (
                 <>
                   <div className="w-4 h-4 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
-                  Loading...
+                  {t("transactionList.loading")}
                 </>
               ) : (
-                hasActiveFilters ? "Load more results" : "Load more"
+                hasActiveFilters ? t("transactionList.loadMoreResults") : t("transactionList.loadMore")
               )}
             </button>
           </div>
@@ -862,7 +865,7 @@ export default function TransactionList({
         {/* Privacy disclaimer for local notes — Issue #1189 */}
         {Object.keys(notes).length > 0 && (
           <p className="text-xs text-slate-600 text-center mt-4">
-            📝 Notes are stored locally and only visible to you.
+            {t("transactionList.notesDisclaimer")}
           </p>
         )}
       </div>

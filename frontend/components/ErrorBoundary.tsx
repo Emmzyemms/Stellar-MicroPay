@@ -5,6 +5,7 @@
  */
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { useTranslation } from "@/contexts/I18nContext";
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -46,21 +47,27 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       return this.props.fallback(error, this.reset);
     }
 
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-cosmos-900">
-        <div className="w-full max-w-sm rounded-xl border border-red-400/30 bg-red-400/5 p-6 text-center">
-          <h1 className="font-display text-lg font-semibold text-slate-900 dark:text-white">
-            Something went wrong
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            An unexpected error occurred. You can try again, or reload the page
-            if the problem persists.
-          </p>
-          <button onClick={this.reset} className="btn-primary mt-4 px-4 py-2 text-sm">
-            Try again
-          </button>
-        </div>
-      </div>
-    );
+    return <DefaultErrorFallback onReset={this.reset} />;
   }
+}
+
+/** Default fallback UI; a function component so the hook can supply `t`. */
+function DefaultErrorFallback({ onReset }: { onReset: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-white px-4 dark:bg-cosmos-900">
+      <div className="w-full max-w-sm rounded-xl border border-red-400/30 bg-red-400/5 p-6 text-center">
+        <h1 className="font-display text-lg font-semibold text-slate-900 dark:text-white">
+          {t("errorBoundary.title")}
+        </h1>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+          {t("errorBoundary.description")}
+        </p>
+        <button onClick={onReset} className="btn-primary mt-4 px-4 py-2 text-sm">
+          {t("errorBoundary.tryAgain")}
+        </button>
+      </div>
+    </div>
+  );
 }

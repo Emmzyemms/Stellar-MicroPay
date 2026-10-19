@@ -1,6 +1,8 @@
 import React from "react";
 import { PaymentRecord } from "@/lib/stellar";
 import { calculatePaymentInsights } from "@/utils/insights";
+import { formatNumber, formatPercent } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface PaymentInsightsCardProps {
   payments?: PaymentRecord[];
@@ -13,6 +15,8 @@ export default function PaymentInsightsCard({
   publicKey = "",
   loading = false,
 }: PaymentInsightsCardProps) {
+  const { t } = useTranslation();
+
   if (loading) {
     return (
       <div
@@ -22,7 +26,7 @@ export default function PaymentInsightsCard({
         <div className="flex items-center justify-between mb-4">
           <div className="h-5 w-40 bg-white/10 rounded" />
           <div className="h-4 w-24 bg-white/10 rounded text-xs text-slate-400 flex items-center justify-center">
-            Calculating…
+            {t("paymentInsights.calculating")}
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -44,7 +48,7 @@ export default function PaymentInsightsCard({
     if (!isPositive && !isNegative) {
       return (
         <span className="inline-flex items-center text-xs font-medium text-slate-400 ml-2">
-          0% vs last month
+          {t("paymentInsights.zeroChange")}
         </span>
       );
     }
@@ -81,7 +85,12 @@ export default function PaymentInsightsCard({
             />
           </svg>
         )}
-        {Math.abs(percent).toFixed(1)}% vs last month
+        {t("paymentInsights.vsLastMonth", {
+          value: formatPercent(Math.abs(percent), {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          }),
+        })}
       </span>
     );
   };
@@ -93,18 +102,18 @@ export default function PaymentInsightsCard({
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
-          Payment Insights
+          {t("paymentInsights.title")}
         </h2>
-        <span className="text-xs text-slate-400 font-medium">This Calendar Month</span>
+        <span className="text-xs text-slate-400 font-medium">{t("paymentInsights.thisMonth")}</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Sent XLM */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <p className="text-xs text-slate-400 font-medium mb-1">XLM Sent</p>
+          <p className="text-xs text-slate-400 font-medium mb-1">{t("paymentInsights.xlmSent")}</p>
           <div className="flex items-baseline flex-wrap">
             <span className="text-2xl font-bold text-white">
-              {insights.sentThisMonth.toLocaleString("en-US", {
+              {formatNumber(insights.sentThisMonth, "XLM", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -113,16 +122,21 @@ export default function PaymentInsightsCard({
             {renderPercentageBadge(insights.sentChangePercent)}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            Last month: {insights.sentLastMonth.toFixed(2)} XLM
+            {t("paymentInsights.lastMonth", {
+              value: formatNumber(insights.sentLastMonth, "XLM", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
+            })}
           </p>
         </div>
 
         {/* Received XLM */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-          <p className="text-xs text-slate-400 font-medium mb-1">XLM Received</p>
+          <p className="text-xs text-slate-400 font-medium mb-1">{t("paymentInsights.xlmReceived")}</p>
           <div className="flex items-baseline flex-wrap">
             <span className="text-2xl font-bold text-white">
-              {insights.receivedThisMonth.toLocaleString("en-US", {
+              {formatNumber(insights.receivedThisMonth, "XLM", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -131,22 +145,27 @@ export default function PaymentInsightsCard({
             {renderPercentageBadge(insights.receivedChangePercent)}
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            Last month: {insights.receivedLastMonth.toFixed(2)} XLM
+            {t("paymentInsights.lastMonth", {
+              value: formatNumber(insights.receivedLastMonth, "XLM", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              }),
+            })}
           </p>
         </div>
 
         {/* Unique Counterparties */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-4">
           <p className="text-xs text-slate-400 font-medium mb-1">
-            Unique Counterparties
+            {t("paymentInsights.uniqueCounterparties")}
           </p>
           <div className="flex items-baseline">
             <span className="text-2xl font-bold text-white">
-              {insights.uniqueCounterpartiesThisMonth}
+              {formatNumber(insights.uniqueCounterpartiesThisMonth, "XLM", { maximumFractionDigits: 0 })}
             </span>
-            <span className="text-xs text-slate-400 ml-2">accounts interacted</span>
+            <span className="text-xs text-slate-400 ml-2">{t("paymentInsights.accountsInteracted")}</span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">This calendar month</p>
+          <p className="text-[11px] text-slate-500 mt-1">{t("paymentInsights.thisCalendarMonth")}</p>
         </div>
       </div>
     </div>

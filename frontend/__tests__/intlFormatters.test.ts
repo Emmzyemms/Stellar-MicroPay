@@ -18,7 +18,14 @@ import {
   formatSmallAmount,
   formatStroopsToXLM,
   formatUSD,
+  formatPercent,
   formatDate,
+  formatDateOnly,
+  formatDateShort,
+  formatDateTimeShort,
+  formatTime,
+  formatMonth,
+  formatMonthYear,
   formatDateFull,
   formatRelativeTime,
   pluralize,
@@ -79,6 +86,42 @@ describe('intlFormatters', () => {
       expect(formatXLM(0)).toContain('0');
       expect(formatXLM(0)).toContain('XLM');
       expect(formatXLMPrecise(0, { locale: 'en-US' })).toBe('0.0000000 XLM');
+    });
+
+    it('should allow callers to override fraction digits', () => {
+      expect(
+        formatNumber(1.5, 'XLM', {
+          locale: 'en-US',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      ).toBe('1.50');
+
+      expect(
+        formatNumber(1.23456, 'XLM', {
+          locale: 'de-DE',
+          maximumFractionDigits: 2,
+        })
+      ).toBe('1,23');
+    });
+  });
+
+  describe('Percentage Formatting', () => {
+    it('should format percentage points with locale separators', () => {
+      expect(formatPercent(12.345, { locale: 'en-US' })).toBe('12.35%');
+      expect(formatPercent(0.5, { locale: 'en-US' })).toBe('0.5%');
+      expect(formatPercent(12.345, { locale: 'de-DE' })).toContain('12,35');
+    });
+
+    it('should support explicit fraction digits and invalid values', () => {
+      expect(
+        formatPercent(1200, {
+          locale: 'en-US',
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        })
+      ).toBe('1,200.0%');
+      expect(formatPercent(NaN, { locale: 'en-US' })).toBe('0%');
     });
   });
 
@@ -165,6 +208,56 @@ describe('intlFormatters', () => {
       expect(pst).toBeDefined();
       // Times should differ (UTC vs PST)
       expect(utc).not.toBe(pst);
+    });
+
+    it('should format date-only, short date, time and month variants', () => {
+      expect(formatDateOnly(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan 15, 2024'
+      );
+      expect(formatDateShort(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan 15'
+      );
+      expect(
+        formatDateTimeShort(testDate, { locale: 'en-US', timezone: 'UTC' })
+      ).toBe('Jan 15, 10:30 AM');
+      expect(formatTime(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        '10:30 AM'
+      );
+      expect(formatMonth(testDate, { locale: 'en-US', timezone: 'UTC' })).toBe(
+        'Jan'
+      );
+      expect(
+        formatMonth(testDate, { locale: 'en-US', timezone: 'UTC', style: 'long' })
+      ).toBe('January');
+      expect(
+        formatMonthYear(testDate, { locale: 'en-US', timezone: 'UTC' })
+      ).toBe('January 2024');
+    });
+
+    it('should localize the new date variants', () => {
+      expect(
+        formatDateOnly(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('15 janv.');
+      expect(
+        formatDateShort(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('15 janv.');
+      expect(formatTime(testDate, { locale: 'fr-FR', timezone: 'UTC' })).toBe(
+        '10:30'
+      );
+      expect(formatMonth(testDate, { locale: 'fr-FR', timezone: 'UTC' })).toContain(
+        'janv'
+      );
+      expect(
+        formatMonthYear(testDate, { locale: 'fr-FR', timezone: 'UTC' })
+      ).toContain('janvier 2024');
+    });
+
+    it('should pass through invalid input in the new date variants', () => {
+      expect(formatDateOnly('not-a-date')).toBe('not-a-date');
+      expect(formatDateShort('not-a-date')).toBe('not-a-date');
+      expect(formatTime('not-a-date')).toBe('not-a-date');
+      expect(formatMonth('not-a-date')).toBe('not-a-date');
+      expect(formatMonthYear('not-a-date')).toBe('not-a-date');
     });
 
     it('should format full dates with timezone name', () => {
@@ -364,6 +457,77 @@ describe('intlFormatters', () => {
       const result = formatAsset(100, 'UNKNOWN', { locale: 'en-US' });
       expect(result).toContain('100');
       expect(result).toContain('UNKNOWN');
+    });
+  });
+
+  describe('French locale formatting (#1455)', () => {
+    it('formats grouped amounts with a decimal comma', () => {
+      // fr-FR: "1 234,5678 XLM" — grouping may be a normal, no-break or
+      // narrow no-break space depending on the ICU version.
+      expect(formatXLM(1234.5678, { locale: 'fr-FR' })).toMatch(
+        /^1[.,\u00a0\u202f ]234,5678 XLM$/
+      );
+    });
+
+    it('formats USD currency amounts for fr', () => {
+      expect(formatUSD(1234.56, { locale: 'fr-FR', showApprox: false })).toMatch(
+        /1[.,\u00a0\u202f ]234,56/
+      );
+    });
+
+    it('formats dates for fr', () => {
+      const formatted = formatDateOnly(new Date('2024-01-15T10:30:00Z'), {
+        locale: 'fr-FR',
+        timezone: 'UTC',
+      });
+      expect(formatted).toContain('2024');
+      expect(formatted).toMatch(/janv/i);
+    });
+
+    it('formats relative time for fr', () => {
+      const now = new Date('2024-01-15T12:00:00Z');
+      const oneHourAgo = new Date('2024-01-15T11:00:00Z');
+      expect(formatRelativeTime(oneHourAgo, { locale: 'fr-FR', now })).toContain(
+        '1 heure'
+      );
+    });
+  });
+
+  describe('Brazilian Portuguese locale formatting (#1456)', () => {
+    it('formats grouped amounts with pt-BR comma decimals', () => {
+      expect(formatXLM(1234.5678, { locale: 'pt-BR' })).toMatch(
+        /^1[.,\u00a0\u202f ]234,5678 XLM$/
+      );
+    });
+
+    it('formats USDC amounts with pt-BR decimals', () => {
+      expect(formatAsset(100.123456, 'USDC', { locale: 'pt-BR' })).toBe(
+        '100,123456 USDC'
+      );
+    });
+
+    it('formats USD currency amounts for pt-BR', () => {
+      expect(
+        formatUSD(1234.56, { locale: 'pt-BR', showApprox: false })
+      ).toMatch(/1[.,\u00a0\u202f ]234,56/);
+    });
+
+    it('formats dates for pt-BR', () => {
+      const formatted = formatDateOnly(new Date('2024-01-15T10:30:00Z'), {
+        locale: 'pt-BR',
+        timezone: 'UTC',
+      });
+      expect(formatted).toContain('2024');
+      expect(formatted).toMatch(/jan/i);
+    });
+
+    it('keeps accepting machine-format amounts (#1456)', () => {
+      // <input type="number"> delivers dot-decimal e.target.value per the
+      // HTML spec regardless of UI locale, so parseFloat-based parsing keeps
+      // working for pt-BR users while display goes through Intl.
+      expect(validateAmount('1234.56', 'XLM')).toBeNull();
+      expect(validateAmount('abc', 'XLM')).not.toBeNull();
+      expect(validateAmount('', 'XLM')).not.toBeNull();
     });
   });
 

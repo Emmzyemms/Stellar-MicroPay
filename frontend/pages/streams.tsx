@@ -5,12 +5,13 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Head from "next/head";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { formatXLM } from "@/utils/format";
+import { useTranslation } from "@/contexts/I18nContext";
+import { formatXLM } from "@/utils/intlFormatters";
 import { buildPaymentTransaction, submitTransaction, getXLMBalance, STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM } from "@/lib/stellar";
-
-const STROOPS_PER_XLM = 10_000_000;
 
 interface Stream {
   streamId: string;
@@ -31,6 +32,7 @@ interface NewStreamForm {
 
 export default function StreamsPage() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const [xlmBalance, setXlmBalance] = useState("0");
   const [activeTab, setActiveTab] = useState<"open" | "my-streams" | "received">("open");
   const [myStreams, setMyStreams] = useState<Stream[]>([]);
@@ -45,23 +47,7 @@ export default function StreamsPage() {
     deposit: "",
   });
 
-  // Keep the XLM balance in sync with the connected wallet.
-  useEffect(() => {
-    if (!publicKey) {
-      setXlmBalance("0");
-      return;
-    }
-    let active = true;
-    getXLMBalance(publicKey)
-      .then((balance) => {
-        if (active) setXlmBalance(balance);
-      })
-      .catch(() => undefined);
-    return () => {
-      active = false;
-    };
-  }, [publicKey]);
-
+  // Load streams and wallet balance on mount
   const loadStreams = useCallback(async () => {
     if (!publicKey) return;
     setLoading(true);
@@ -72,11 +58,11 @@ export default function StreamsPage() {
       setMyStreams([]);
       setReceivedStreams([]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load streams");
+      setError(err instanceof Error ? err.message : t("streams.failedToLoad"));
     } finally {
       setLoading(false);
     }
-  }, [publicKey]);
+  }, [publicKey, t]);
 
   // Load streams on mount
   useEffect(() => {
@@ -113,18 +99,18 @@ export default function StreamsPage() {
     const depositNum = parseFloat(newStream.deposit);
 
     if (!newStream.recipient || !ratePerHourNum || !depositNum) {
-      setError("Please fill in all fields");
+      setError(t("streams.fillAllFields"));
       return;
     }
 
     if (depositNum < ratePerHourNum) {
-      setError("Deposit must be at least the hourly rate");
+      setError(t("streams.depositMinimum"));
       return;
     }
 
     const availableBalance = parseFloat(xlmBalance) - STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM;
     if (depositNum > availableBalance) {
-      setError("Insufficient balance");
+      setError(t("streams.insufficientBalance"));
       return;
     }
 
@@ -142,16 +128,16 @@ export default function StreamsPage() {
       });
 
       const { signedXDR, error: signError } = await signTransactionWithWallet(tx.toXDR());
-      if (signError || !signedXDR) throw new Error(signError || "Signing failed");
+      if (signError || !signedXDR) throw new Error(signError || t("streams.signingFailed"));
 
       await submitTransaction(signedXDR);
 
       // Reset form
       setNewStream({ recipient: "", ratePerHour: "", deposit: "" });
-      alert("Stream opened successfully!");
+      alert(t("streams.openedSuccess"));
       loadStreams();
     } catch (err: any) {
-      setError(err.message || "Failed to open stream");
+      setError(err.message || t("streams.failedToOpen"));
     } finally {
       setLoading(false);
     }
@@ -165,10 +151,10 @@ export default function StreamsPage() {
 
     try {
       // In production, this would call claim_stream on the Soroban contract
-      alert(`Claimed stream ${streamId}`);
+      alert(t("streams.claimedStream", { streamId }));
       loadStreams();
     } catch (err: any) {
-      setError(err.message || "Failed to claim stream");
+      setError(err.message || t("streams.failedToClaim"));
     } finally {
       setLoading(false);
     }
@@ -177,7 +163,7 @@ export default function StreamsPage() {
   const handleClose = async (streamId: string) => {
     if (!publicKey) return;
 
-    if (!confirm("Are you sure you want to close this stream? Any remaining funds will be refunded.")) {
+    if (!confirm(t("streams.closeConfirm"))) {
       return;
     }
 
@@ -186,21 +172,21 @@ export default function StreamsPage() {
 
     try {
       // In production, this would call close_stream on the Soroban contract
-      alert(`Closed stream ${streamId}`);
+      alert(t("streams.closedStream", { streamId }));
       loadStreams();
     } catch (err: any) {
-      setError(err.message || "Failed to close stream");
+      setError(err.message || t("streams.failedToClose"));
     } finally {
       setLoading(false);
     }
   };
 
-  const convertStroopsToXLM = (stroops: number): string => {
-    return (stroops / STROOPS_PER_XLM).toFixed(7);
-  };
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <>
+      <Head>
+        <title>{t("pages.streams.title")}</title>
+      </Head>
+      <div className="max-w-6xl mx-auto px-4 py-8">
       <h1 className="font-display text-3xl font-bold text-white mb-2">Streaming Payments</h1>
       <p className="text-slate-400 mb-8">Open, view, claim, and close Soroban streaming payment contracts.</p>
 
@@ -220,7 +206,7 @@ export default function StreamsPage() {
               : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          Open Stream
+          {t("streams.openStream")}
         </button>
         <button
           onClick={() => setActiveTab("my-streams")}
@@ -230,7 +216,7 @@ export default function StreamsPage() {
               : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          My Streams
+          {t("streams.myStreams")}
         </button>
         <button
           onClick={() => setActiveTab("received")}
@@ -240,17 +226,17 @@ export default function StreamsPage() {
               : "text-slate-400 hover:text-white hover:bg-white/5"
           }`}
         >
-          Received Streams
+          {t("streams.receivedStreams")}
         </button>
       </div>
 
       {/* Open Stream Tab */}
       {activeTab === "open" && (
         <div className="card max-w-2xl">
-          <h2 className="font-display text-xl font-semibold text-white mb-6">Open New Stream</h2>
+          <h2 className="font-display text-xl font-semibold text-white mb-6">{t("streams.openNewStream")}</h2>
           <form onSubmit={handleOpenStream} className="space-y-5">
             <div>
-              <label className="label">Recipient Address</label>
+              <label className="label">{t("streams.recipientAddress")}</label>
               <input
                 type="text"
                 value={newStream.recipient}
@@ -262,7 +248,7 @@ export default function StreamsPage() {
             </div>
 
             <div>
-              <label className="label">Rate (XLM/hour)</label>
+              <label className="label">{t("streams.rateHourly")}</label>
               <input
                 type="number"
                 step="0.0000001"
@@ -274,12 +260,12 @@ export default function StreamsPage() {
                 disabled={loading}
               />
               <p className="mt-2 text-xs text-slate-500">
-                The recipient can claim this amount every hour.
+                {t("streams.rateHint")}
               </p>
             </div>
 
             <div>
-              <label className="label">Deposit Amount (XLM)</label>
+              <label className="label">{t("streams.depositAmount")}</label>
               <input
                 type="number"
                 step="0.0000001"
@@ -291,7 +277,7 @@ export default function StreamsPage() {
                 disabled={loading}
               />
               <p className="mt-2 text-xs text-slate-500">
-                Total XLM to deposit into the stream contract.
+                {t("streams.depositHint")}
               </p>
             </div>
 
@@ -300,7 +286,7 @@ export default function StreamsPage() {
               disabled={loading || !publicKey}
               className="btn-primary w-full"
             >
-              {loading ? "Opening Stream..." : "Open Stream"}
+              {loading ? t("streams.openingStream") : t("streams.openStream")}
             </button>
           </form>
         </div>
@@ -309,11 +295,11 @@ export default function StreamsPage() {
       {/* My Streams Tab */}
       {activeTab === "my-streams" && (
         <div className="card">
-          <h2 className="font-display text-xl font-semibold text-white mb-6">My Streams (Payer)</h2>
+          <h2 className="font-display text-xl font-semibold text-white mb-6">{t("streams.myStreamsPayer")}</h2>
           {loading ? (
-            <div className="text-center text-slate-400 py-8">Loading...</div>
+            <div className="text-center text-slate-400 py-8">{t("streams.loading")}</div>
           ) : myStreams.length === 0 ? (
-            <div className="text-center text-slate-400 py-8">No active streams</div>
+            <div className="text-center text-slate-400 py-8">{t("streams.noActiveStreams")}</div>
           ) : (
             <div className="space-y-4">
               {myStreams.map((stream) => (
@@ -323,26 +309,26 @@ export default function StreamsPage() {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="text-sm text-slate-400">Recipient</p>
+                      <p className="text-sm text-slate-400">{t("streams.recipient")}</p>
                       <p className="font-mono text-sm text-white">{stream.recipient}</p>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       stream.isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"
                     }`}>
-                      {stream.isActive ? "Active" : "Closed"}
+                      {stream.isActive ? t("streams.active") : t("streams.closed")}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
-                      <p className="text-xs text-slate-500">Rate</p>
+                      <p className="text-xs text-slate-500">{t("streams.rate")}</p>
                       <p className="text-sm font-medium text-white">{formatXLM(stream.ratePerHour)}/hr</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Deposit</p>
+                      <p className="text-xs text-slate-500">{t("streams.deposit")}</p>
                       <p className="text-sm font-medium text-white">{formatXLM(stream.deposit)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Claimable</p>
+                      <p className="text-xs text-slate-500">{t("streams.claimable")}</p>
                       <p className="text-sm font-medium text-stellar-300">{formatXLM(stream.claimable)}</p>
                     </div>
                   </div>
@@ -352,7 +338,7 @@ export default function StreamsPage() {
                       disabled={loading}
                       className="btn-secondary w-full text-sm"
                     >
-                      Close Stream
+                      {t("streams.closeStream")}
                     </button>
                   )}
                 </div>
@@ -365,11 +351,11 @@ export default function StreamsPage() {
       {/* Received Streams Tab */}
       {activeTab === "received" && (
         <div className="card">
-          <h2 className="font-display text-xl font-semibold text-white mb-6">Received Streams</h2>
+          <h2 className="font-display text-xl font-semibold text-white mb-6">{t("streams.receivedStreams")}</h2>
           {loading ? (
-            <div className="text-center text-slate-400 py-8">Loading...</div>
+            <div className="text-center text-slate-400 py-8">{t("streams.loading")}</div>
           ) : receivedStreams.length === 0 ? (
-            <div className="text-center text-slate-400 py-8">No received streams</div>
+            <div className="text-center text-slate-400 py-8">{t("streams.noReceivedStreams")}</div>
           ) : (
             <div className="space-y-4">
               {receivedStreams.map((stream) => (
@@ -379,26 +365,26 @@ export default function StreamsPage() {
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="text-sm text-slate-400">Payer</p>
+                      <p className="text-sm text-slate-400">{t("streams.payer")}</p>
                       <p className="font-mono text-sm text-white">{stream.payer}</p>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-xs ${
                       stream.isActive ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"
                     }`}>
-                      {stream.isActive ? "Active" : "Closed"}
+                      {stream.isActive ? t("streams.active") : t("streams.closed")}
                     </span>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div>
-                      <p className="text-xs text-slate-500">Rate</p>
+                      <p className="text-xs text-slate-500">{t("streams.rate")}</p>
                       <p className="text-sm font-medium text-white">{formatXLM(stream.ratePerHour)}/hr</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Total Deposit</p>
+                      <p className="text-xs text-slate-500">{t("streams.totalDeposit")}</p>
                       <p className="text-sm font-medium text-white">{formatXLM(stream.deposit)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Claimable</p>
+                      <p className="text-xs text-slate-500">{t("streams.claimable")}</p>
                       <p className="text-sm font-medium text-stellar-300">{formatXLM(stream.claimable)}</p>
                     </div>
                   </div>
@@ -408,7 +394,7 @@ export default function StreamsPage() {
                       disabled={loading}
                       className="btn-primary w-full text-sm"
                     >
-                      Claim {formatXLM(stream.claimable)}
+                      {t("streams.claim", { amount: formatXLM(stream.claimable) })}
                     </button>
                   )}
                 </div>
@@ -417,6 +403,7 @@ export default function StreamsPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

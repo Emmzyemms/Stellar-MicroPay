@@ -30,7 +30,8 @@ import {
   isValidStellarAddress,
 } from "../lib/stellar";
 import { signTransactionWithWallet } from "../lib/wallet";
-import { formatXLM } from "../utils/format";
+import { formatXLM } from "../utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface MultiSigFlowProps {
   publicKey: string;
@@ -41,6 +42,7 @@ interface MultiSigFlowProps {
 type Step = "build" | "share" | "collect" | "submit";
 
 export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: MultiSigFlowProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("build");
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
@@ -72,7 +74,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       setUnsignedXDR(tx.toXDR());
       setStep("share");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to build transaction");
+      setError(err instanceof Error ? err.message : t("multiSig.buildFailed"));
     } finally {
       setStatus("idle");
     }
@@ -97,7 +99,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       // Sign with initiator's wallet if needed
       const { signedXDR, error: signError } = await signTransactionWithWallet(combinedXDR);
       if (signError || !signedXDR) {
-        setError(signError || "Failed to sign transaction");
+        setError(signError || t("multiSig.signFailed"));
         setStatus("idle");
         return;
       }
@@ -106,7 +108,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       setStep("build"); // Reset
       // Maybe show success
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to submit transaction");
+      setError(err instanceof Error ? err.message : t("multiSig.submitFailed"));
     } finally {
       setStatus("idle");
     }
@@ -116,7 +118,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
     <div className="card animate-fade-in border-stellar-400/20">
       <h2 className="font-display text-lg font-semibold text-white mb-6 flex items-center gap-2">
         <MultiSigIcon className="w-5 h-5 text-stellar-400" />
-        Multi-Signature Transaction
+        {t("multiSig.title")}
       </h2>
 
       {/* Step Indicator */}
@@ -139,7 +141,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       {step === "build" && (
         <div className="space-y-4">
           <div>
-            <label className="label">Recipient Address</label>
+            <label className="label">{t("multiSig.recipientAddress")}</label>
             <input
               type="text"
               value={destination}
@@ -149,7 +151,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             />
           </div>
           <div>
-            <label className="label">Amount (XLM)</label>
+            <label className="label">{t("multiSig.amountLabel")}</label>
             <input
               type="number"
               value={amount}
@@ -161,17 +163,17 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             />
           </div>
           <div>
-            <label className="label">Memo (optional)</label>
+            <label className="label">{t("multiSig.memoLabel")}</label>
             <input
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              placeholder="Payment description"
+              placeholder={t("multiSig.memoPlaceholder")}
               className="input-field"
             />
           </div>
           <div>
-            <label className="label">Signature Threshold</label>
+            <label className="label">{t("multiSig.thresholdLabel")}</label>
             <input
               type="number"
               value={threshold}
@@ -185,14 +187,14 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             disabled={!canBuild || status === "loading"}
             className="btn-primary w-full py-2.5"
           >
-            {status === "loading" ? "Building..." : "Build Transaction"}
+            {status === "loading" ? t("multiSig.building") : t("multiSig.buildTransaction")}
           </button>
         </div>
       )}
 
       {step === "share" && (
         <div className="space-y-4">
-          <p className="text-slate-300">Share this URL with your co-signers:</p>
+          <p className="text-slate-300">{t("multiSig.shareUrl")}</p>
           <input
             type="text"
             value={shareableUrl}
@@ -203,13 +205,13 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             onClick={() => navigator.clipboard.writeText(shareableUrl)}
             className="btn-secondary w-full py-2.5"
           >
-            Copy URL
+            {t("multiSig.copyUrl")}
           </button>
           <button
             onClick={() => setStep("collect")}
             className="btn-primary w-full py-2.5 mt-4"
           >
-            Proceed to Collect Signatures
+            {t("multiSig.proceedToCollect")}
           </button>
         </div>
       )}
@@ -217,17 +219,22 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       {step === "collect" && (
         <div className="space-y-4">
           <p className="text-slate-300">
-            Signatures collected: {signedXDRs.length} / {threshold}
+            {t("multiSig.signaturesCollected", {
+              collected: signedXDRs.length,
+              threshold,
+            })}
           </p>
           {unsignedXDR && signedXDRs.length > 0 && (
             <ul className="text-xs text-slate-400">
               {getSignerHints(unsignedXDR, signedXDRs).map((hint, i) => (
-                <li key={i}>Signature {i + 1} hint: {hint}</li>
+                <li key={i}>
+                  {t("multiSig.signatureHint", { index: i + 1, hint })}
+                </li>
               ))}
             </ul>
           )}
           <div>
-            <label className="label">Paste Signed XDR from Co-Signer</label>
+            <label className="label">{t("multiSig.pasteSignedXdr")}</label>
             <textarea
               value={newSignedXDR}
               onChange={(e) => setNewSignedXDR(e.target.value)}
@@ -240,14 +247,14 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             disabled={!newSignedXDR.trim()}
             className="btn-secondary w-full py-2.5"
           >
-            Add Signature
+            {t("multiSig.addSignature")}
           </button>
           {signedXDRs.length >= threshold && (
             <button
               onClick={() => setStep("submit")}
               className="btn-primary w-full py-2.5 mt-4"
             >
-              Proceed to Submit
+              {t("multiSig.proceedToSubmit")}
             </button>
           )}
         </div>
@@ -256,12 +263,14 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
       {step === "submit" && (
         <div className="space-y-4">
           <p className="text-slate-300">
-            Ready to submit with {signedXDRs.length} signatures.
+            {t("multiSig.readyToSubmit", { count: signedXDRs.length })}
           </p>
           {unsignedXDR && signedXDRs.length > 0 && (
             <ul className="text-xs text-slate-400">
               {getSignerHints(unsignedXDR, signedXDRs).map((hint, i) => (
-                <li key={i}>Signature {i + 1} hint: {hint}</li>
+                <li key={i}>
+                  {t("multiSig.signatureHint", { index: i + 1, hint })}
+                </li>
               ))}
             </ul>
           )}
@@ -270,7 +279,7 @@ export default function MultiSigFlow({ publicKey, xlmBalance, onSuccess }: Multi
             disabled={status === "loading"}
             className="btn-primary w-full py-2.5"
           >
-            {status === "loading" ? "Submitting..." : "Submit Transaction"}
+            {status === "loading" ? t("multiSig.submitting") : t("multiSig.submitTransaction")}
           </button>
         </div>
       )}

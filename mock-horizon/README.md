@@ -1,8 +1,8 @@
 # 🧪 mock-horizon
 
-A minimal [Express](https://expressjs.com/) server that imitates the small part of the [Stellar Horizon API](https://developers.stellar.org/docs/data/apis/horizon) the backend uses. It lets integration tests run without the live testnet, so they're fast, deterministic and work offline.
+A configurable [Express](https://expressjs.com/) server that imitates the [Stellar Horizon API](https://developers.stellar.org/docs/data/apis/horizon) endpoints used by the backend and frontend. It lets integration tests run without the live testnet, so they're fast, deterministic, work offline, and can simulate failure scenarios like network latency, gateway timeouts (504), rate limits (429), and transaction failure result codes (`tx_bad_seq`, `op_underfunded`).
 
-It runs as the `mock-horizon` service in [`docker-compose.test.yml`](../docker-compose.test.yml). The source of truth is [`server.js`](server.js); if this README and the code disagree, the code is right, so please update this file.
+It runs as the `mock-horizon` service in [`docker-compose.test.yml`](../docker-compose.test.yml).
 
 ---
 
@@ -37,24 +37,141 @@ curl http://localhost:8000/accounts/GABC                 # any ID works
 
 ---
 
+## ⚡ Failure Injection & Configuration
+
+Mock Horizon can be configured at startup via **environment variables** or at runtime via the **`/_control`** HTTP endpoint for per-test toggling.
+
+### Configuration Parameters
+
+| Parameter | Environment Variable | Default | Description |
+| --- | --- | --- | --- |
+| `latencyMs` | `LATENCY_MS` | `0` | Artificial delay added to responses in milliseconds. Useful for testing timeouts and circuit breaker behavior. |
+| `errorRate` | `ERROR_RATE` | `0` | Probability between `0.0` and `1.0` of injecting an error response. |
+| `errorStatus` | `ERROR_STATUS` | `504` | HTTP status code to return when error injection triggers (`504` Gateway Timeout or `429` Rate Limit Exceeded). |
+| `submitResultCode` | `SUBMISSION_RESULT_CODE` | `null` | When set, `POST /transactions` fails with HTTP 400 and returns a Horizon problem document with this result code (e.g. `tx_bad_seq`, `op_underfunded`). |
+| `rateLimitLimit` | `RATE_LIMIT_LIMIT` | `null` | Value for `X-RateLimit-Limit` response header. |
+| `rateLimitRemaining` | `RATE_LIMIT_REMAINING` | `null` | Value for `X-RateLimit-Remaining` response header. |
+| `rateLimitReset` | `RATE_LIMIT_RESET` | `null` | Value for `X-RateLimit-Reset` response header (seconds). |
+
+---
+
+### Runtime Control Endpoint (`/_control`)
+
+You can dynamically adjust failure injection on the fly without restarting the server:
+
+#### 1. Inspect Current Configuration
+```bash
+curl http://localhost:8000/_control
+```
+Response:
+```json
+{
+  "success": true,
+  "config": {
+    "latencyMs": 0,
+    "errorRate": 0,
+    "errorStatus": 504,
+    "submitResultCode": null,
+    "rateLimitLimit": null,
+    "rateLimitRemaining": null,
+    "rateLimitReset": null
+  }
+}
+```
+
+#### 2. Inject Artificial Latency
+Add a 200ms delay to every Horizon call:
+```bash
+curl -X POST http://localhost:8000/_control \
+  -H "Content-Type: application/json" \
+  -d '{"latencyMs": 200}'
+```
+
+#### 3. Inject Gateway Timeout (504) or Rate Limiting (429)
+Make 50% of Horizon requests fail with a 504 Gateway Timeout:
+```bash
+curl -X POST http://localhost:8000/_control \
+  -H "Content-Type: application/json" \
+  -d '{"errorRate": 0.5, "errorStatus": 504}'
+```
+
+Simulate Horizon 429 Too Many Requests:
+```bash
+curl -X POST http://localhost:8000/_control \
+  -H "Content-Type: application/json" \
+  -d '{"errorRate": 1.0, "errorStatus": 429}'
+```
+
+#### 4. Inject Transaction Submission Failures
+Simulate `tx_bad_seq` sequence mismatch error:
+```bash
+curl -X POST http://localhost:8000/_control \
+  -H "Content-Type: application/json" \
+  -d '{"submitResultCode": "tx_bad_seq"}'
+```
+`POST /transactions` returns HTTP 400 with:
+```json
+{
+  "type": "https://stellar.org/horizon-errors/transaction_failed",
+  "title": "Transaction Failed",
+  "status": 400,
+  "extras": {
+    "result_codes": {
+      "transaction": "tx_bad_seq"
+    }
+  }
+}
+```
+
+Simulate `op_underfunded` (insufficient balance):
+```bash
+curl -X POST http://localhost:8000/_control \
+  -H "Content-Type: application/json" \
+  -d '{"submitResultCode": "op_underfunded"}'
+```
+`POST /transactions` returns HTTP 400 with:
+```json
+{
+  "type": "https://stellar.org/horizon-errors/transaction_failed",
+  "title": "Transaction Failed",
+  "status": 400,
+  "extras": {
+    "result_codes": {
+      "transaction": "tx_failed",
+      "operations": ["op_underfunded"]
+    }
+  }
+}
+```
+
+#### 5. Reset to Default Configuration
+```bash
+curl -X POST http://localhost:8000/_control/reset
+```
+
+---
+
 ## 📡 Implemented endpoints
 
 | Method | Path | Response |
 | --- | --- | --- |
-| `GET` | `/` | Root document: `horizon_version: "mock-2.0.0"`, `core_version: "mock"`, testnet `network_passphrase` |
-| `GET` | `/health` | `{"status":"ok"}`. Used by the compose healthcheck. **Not** a real Horizon route |
-| `GET` | `/accounts/:accountId` | Account record (see [fixtures](#-fixtures)) |
-| `GET` | `/accounts/:accountId/payments` | One-record page with a single native payment |
-| `GET` | `/accounts/:accountId/transactions` | Empty page (`records: []`) |
-| `POST` | `/transactions` | Always `200` with a fixed hash; echoes the form field `tx` back as `envelope_xdr` |
-
-Every other path returns Express's default **HTML 404**, not a Horizon-style JSON problem document.
+| `GET` | `/` | Root document: `horizon_version: "mock-2.1.0"`, `core_version: "mock"`, testnet `network_passphrase` |
+| `GET` | `/health` | `{"status":"ok"}`. Healthcheck endpoint (bypasses latency and error injection). |
+| `GET` | `/_control` | Get current mock configuration. |
+| `POST` | `/_control` | Dynamically update mock configuration. |
+| `POST` | `/_control/reset` | Reset mock configuration to defaults. |
+| `GET` | `/accounts/:accountId` | Account record (see fixtures). |
+| `GET` | `/accounts/:accountId/payments` | One-record page with a single native payment. |
+| `GET` | `/accounts/:accountId/transactions` | Empty page (`records: []`). |
+| `GET` | `/fee_stats` | Fee stats breakdown (min, p50, p90, max). |
+| `GET` | `/ledgers` | Recent ledger record. |
+| `POST` | `/transactions` | Submits transaction. Responds 200 with hash or 400 if `submitResultCode` configured. |
 
 ---
 
 ## 🗂 Fixtures
 
-The mock has no state and no account list. **Every account ID is accepted** (it isn't validated, so `GABC` works too) and gets the same data:
+The mock has no state and no account list. **Every account ID is accepted** and gets standard testnet fixtures:
 
 | Field | Value |
 | --- | --- |
@@ -62,64 +179,7 @@ The mock has no state and no account list. **Every account ID is accepted** (it 
 | `balances` | `[{ "asset_type": "native", "balance": "100.0000000" }]` |
 | Payment `id` | `"mock-payment-1"` |
 | Payment | `10.0000000` XLM `from` the requested account `to` `GBMOCK000RECEIVER000000000000000000000000000000000000000` |
-| Payment `created_at` | Current time, so it changes on every request |
+| Payment `created_at` | Current time |
 | Submitted tx `hash` | `mocktxhash0000000000000000000000000000000000000000000000000000` |
 | Submitted tx `ledger` | `12345` |
 | Network passphrase | `Test SDF Network ; September 2015` (testnet) |
-
-The receiver address is a placeholder. It isn't a valid StrKey, so `StrKey.isValidEd25519PublicKey()` and `Keypair.fromPublicKey()` will reject it.
-
----
-
-## 🔌 Pointing the app at it
-
-### Backend
-
-`stellarService.js`, `turretsService.js` and `GET /health/ready` read `HORIZON_URL`:
-
-```bash
-# backend/.env
-HORIZON_URL=http://localhost:8000
-```
-
-Two caveats:
-
-- **`http://` and the SDK.** `Horizon.Server` from `@stellar/stellar-sdk` refuses non-HTTPS URLs unless it gets `{ allowHttp: true }`, and the backend doesn't pass that today. Raw `fetch` callers, such as `/health/ready`, work against the mock. Code paths that go through `Horizon.Server` will throw `Cannot connect to insecure horizon server` until that option is added (or until the mock sits behind TLS).
-- **`routes/network.ts`** reads `STELLAR_HORIZON_URL`, not `HORIZON_URL`, and calls `/ledgers`, which the mock doesn't implement.
-
-### Frontend
-
-The frontend **ignores** `NEXT_PUBLIC_HORIZON_URL` for its Horizon client. `getNetworkConfig()` in [`frontend/lib/stellar.ts`](../frontend/lib/stellar.ts) uses the built-in testnet/mainnet URLs unless the browser has a custom config saved. To use the mock, set one in the browser devtools console and reload:
-
-```js
-localStorage.setItem(
-  "stellar-micropay:network",
-  JSON.stringify({ network: "custom", horizonUrl: "http://localhost:8000" })
-);
-```
-
-Undo it with `localStorage.removeItem("stellar-micropay:network")`. Expect gaps: the frontend calls endpoints the mock doesn't have (for example `/fee_stats`), and the `http://` caveat above applies to its `Horizon.Server` as well. The mock also sends no CORS headers, so browser `fetch` calls from `localhost:3000` will be blocked.
-
----
-
-## ⚠️ Limitations vs. real Horizon
-
-- **Few endpoints.** No `/ledgers`, `/fee_stats`, `/operations`, `/effects`, `/offers`, `/trades`, `/assets`, `/claimable_balances`, `/paths/*`, `/liquidity_pools`, `/transactions/:hash` or `/accounts/:id/operations`.
-- **No query handling.** `cursor`, `limit`, `order` and `join` are ignored. `next`/`prev` links are empty, so pagination stops after one page.
-- **No streaming.** `.stream()` / Server-Sent Events aren't supported.
-- **No validation or errors.** Unknown accounts don't return `404`. Submissions are never decoded, verified or rejected, so `tx_bad_seq`, `op_underfunded` and other result codes can't be tested.
-- **Partial records.** Responses carry only the fields shown above. Real records have more (`paging_token`, `transaction_hash`, `thresholds`, `flags`, `signers`, `subentry_count`, …), and SDK helpers that read them will see `undefined`.
-- **No state.** Submitting a transaction doesn't change balances, sequence numbers or payment history.
-- **Testnet only.** The passphrase is hard-coded to testnet.
-- **No Soroban RPC.** Contract calls need a separate RPC endpoint; this mock only covers Horizon.
-
-For anything listed here, mock the SDK or `fetch` inside the Jest test (see [`backend/__tests__/stellarService.test.js`](../backend/__tests__/stellarService.test.js)), or extend the mock.
-
----
-
-## ➕ Extending the mock
-
-1. Add a route to [`server.js`](server.js) that returns the same JSON shape as real Horizon. Copy a response from `https://horizon-testnet.stellar.org` and trim it down.
-2. Keep fixtures deterministic. Avoid randomness, and avoid timestamps unless the test doesn't depend on them.
-3. Update the [endpoint](#-implemented-endpoints) and [fixture](#-fixtures) tables above.
-4. Run the stack (`docker compose -f docker-compose.test.yml up --build ...`) to confirm the `integration-test` CI job still passes.

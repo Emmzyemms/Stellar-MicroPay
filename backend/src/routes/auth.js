@@ -107,4 +107,10 @@ router.get("/csrf", (req, res) => {
   res.json({ csrfToken });
 });
 
+// POST /api/auth/csrf/rotate — explicitly rotate the CSRF token.
+router.post("/csrf/rotate", (req, res) => {
+  const csrfToken = setCsrfCookie(res);
+  res.json({ success: true, csrfToken });
+});
+
 module.exports = router;

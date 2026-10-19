@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
+import { useTranslation } from "@/contexts/I18nContext";
 
 interface PaymentIntent {
   amount: string;
@@ -24,6 +25,7 @@ export default function AIPaymentAssistant({
   onClose,
   onConfirm,
 }: AIPaymentAssistantProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [parsedIntent, setParsedIntent] = useState<PaymentIntent | null>(null);
@@ -71,9 +73,7 @@ export default function AIPaymentAssistant({
       const intent: PaymentIntent = await response.json();
       setParsedIntent(intent);
     } catch (err) {
-      setError(
-        "AI assistant is currently unavailable. Please fill in the payment details manually.",
-      );
+      setError(t("aiAssistant.unavailable"));
       console.error("Payment parsing error:", err);
     } finally {
       setIsLoading(false);
@@ -111,26 +111,25 @@ export default function AIPaymentAssistant({
             className="font-display text-lg font-semibold text-white flex items-center gap-2"
           >
             <SparklesIcon className="w-5 h-5 text-stellar-400" />
-            AI Payment Assistant
+            {t("aiAssistant.title")}
           </h3>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white transition-colors"
-            aria-label="Close assistant"
+            aria-label={t("aiAssistant.closeAssistant")}
           >
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
 
         <p className="text-sm text-slate-400 mb-4">
-          Describe your payment in natural language and I&apos;ll help you fill
-          out the form.
+          {t("aiAssistant.description")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="payment-input" className="sr-only">
-              Payment description
+              {t("aiAssistant.inputLabel")}
             </label>
             <textarea
               ref={inputRef}
@@ -138,12 +137,12 @@ export default function AIPaymentAssistant({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., Send 50 XLM to GABC123... for design work"
+              placeholder={t("aiAssistant.placeholder")}
               className="w-full h-24 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-stellar-500/50 focus:border-stellar-500 resize-none"
               disabled={isLoading}
             />
             <p className="text-xs text-slate-500 mt-1">
-              Press Cmd/Ctrl + Enter to parse, or Escape to close
+              {t("aiAssistant.keyboardHint")}
             </p>
           </div>
 
@@ -155,12 +154,12 @@ export default function AIPaymentAssistant({
             {isLoading ? (
               <>
                 <Spinner />
-                Parsing...
+                {t("aiAssistant.parsing")}
               </>
             ) : (
               <>
                 <SparklesIcon className="w-4 h-4" />
-                Parse Payment
+                {t("aiAssistant.parsePayment")}
               </>
             )}
           </button>
@@ -178,12 +177,12 @@ export default function AIPaymentAssistant({
               {parsedIntent.isValid ? (
                 <>
                   <CheckCircleIcon className="w-4 h-4 text-emerald-400" />
-                  Parsed Payment Details
+                  {t("aiAssistant.parsedDetails")}
                 </>
               ) : (
                 <>
                   <ExclamationTriangleIcon className="w-4 h-4 text-amber-400" />
-                  Need More Information
+                  {t("aiAssistant.needMoreInfo")}
                 </>
               )}
             </h4>
@@ -191,20 +190,20 @@ export default function AIPaymentAssistant({
             {parsedIntent.isValid ? (
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Amount:</span>
+                  <span className="text-slate-400">{t("aiAssistant.amountLabel")}</span>
                   <span className="text-white font-medium">
-                    {parsedIntent.amount || "Not specified"}
+                    {parsedIntent.amount || t("aiAssistant.notSpecified")}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Recipient:</span>
+                  <span className="text-slate-400">{t("aiAssistant.recipientLabel")}</span>
                   <span className="text-white font-mono text-xs break-all">
-                    {parsedIntent.recipient || "Not specified"}
+                    {parsedIntent.recipient || t("aiAssistant.notSpecified")}
                   </span>
                 </div>
                 {parsedIntent.memo && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Memo:</span>
+                    <span className="text-slate-400">{t("aiAssistant.memoLabel")}</span>
                     <span className="text-white">{parsedIntent.memo}</span>
                   </div>
                 )}
@@ -214,13 +213,13 @@ export default function AIPaymentAssistant({
                     onClick={handleConfirm}
                     className="flex-1 btn-primary text-sm py-2"
                   >
-                    Fill Payment Form
+                    {t("aiAssistant.fillForm")}
                   </button>
                   <button
                     onClick={() => setParsedIntent(null)}
                     className="px-4 py-2 text-sm border border-slate-600 rounded-lg text-slate-300 hover:border-slate-500 transition-colors"
                   >
-                    Try Again
+                    {t("aiAssistant.tryAgain")}
                   </button>
                 </div>
               </div>
@@ -233,7 +232,7 @@ export default function AIPaymentAssistant({
                   onClick={() => setParsedIntent(null)}
                   className="w-full btn-secondary text-sm py-2"
                 >
-                  Try Again
+                  {t("aiAssistant.tryAgain")}
                 </button>
               </div>
             )}
@@ -241,11 +240,11 @@ export default function AIPaymentAssistant({
         )}
 
         <div className="mt-4 p-3 rounded-lg bg-stellar-500/5 border border-stellar-500/10">
-          <p className="text-xs text-stellar-300 font-medium mb-1">Examples:</p>
+          <p className="text-xs text-stellar-300 font-medium mb-1">{t("aiAssistant.examples")}</p>
           <ul className="text-xs text-slate-400 space-y-1">
-            <li>• &quot;Send 50 XLM to GABC123... for design work&quot;</li>
-            <li>• &quot;Pay 25 XLM to Alice for the consultation&quot;</li>
-            <li>• &quot;Transfer 100 XLM to my colleague&quot;</li>
+            <li>• {t("aiAssistant.exampleSend")}</li>
+            <li>• {t("aiAssistant.examplePay")}</li>
+            <li>• {t("aiAssistant.exampleTransfer")}</li>
           </ul>
         </div>
       </div>
@@ -261,17 +260,19 @@ interface FloatingAssistantButtonProps {
 export function FloatingAssistantButton({
   onClick,
 }: FloatingAssistantButtonProps) {
+  const { t } = useTranslation();
+
   return (
     <button
       onClick={onClick}
       className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-stellar-500 to-stellar-400 hover:from-stellar-400 hover:to-stellar-300 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group z-40"
-      aria-label="Open AI Payment Assistant"
+      aria-label={t("aiAssistant.openAssistant")}
     >
       <SparklesIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
 
       {/* Tooltip */}
       <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-        AI Payment Assistant
+        {t("aiAssistant.title")}
         <div className="absolute top-full right-3 w-2 h-2 bg-slate-800 rotate-45 -mt-1"></div>
       </div>
     </button>

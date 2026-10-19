@@ -9,23 +9,28 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import WalletConnect from "@/components/WalletConnect";
 import { useWallet } from "@/lib/useWallet";
+import { useTranslation } from "@/contexts/I18nContext";
+import { formatNumber } from "@/utils/intlFormatters";
+import { useTranslation } from "@/contexts/I18nContext";
 
 const FEATURES = [
-  { icon: "⚡", title: "Instant Settlement", desc: "Stellar transactions confirm in 3–5 seconds. No waiting for bank transfers." },
-  { icon: "🌍", title: "Truly Global", desc: "Send XLM to anyone with a Stellar address, anywhere in the world." },
-  { icon: "💰", title: "Micro Fees", desc: "Each transaction costs ~0.00001 XLM. Send $0.01 or $1,000 for the same fee." },
-  { icon: "🔐", title: "Non-Custodial", desc: "Your keys, your funds. We never touch your private key." },
+  { icon: "⚡", titleKey: "landing.featureInstantSettlementTitle", descKey: "landing.featureInstantSettlementDesc" },
+  { icon: "🌍", titleKey: "landing.featureTrulyGlobalTitle", descKey: "landing.featureTrulyGlobalDesc" },
+  { icon: "💰", titleKey: "landing.featureMicroFeesTitle", descKey: "landing.featureMicroFeesDesc" },
+  { icon: "🔐", titleKey: "landing.featureNonCustodialTitle", descKey: "landing.featureNonCustodialDesc" },
 ];
 
 const STATS = [
-  { target: 5, label: "Settlement time", suffix: "s", prefix: "3–" },
-  { target: 0.00001, label: "Average fee", prefix: "$", decimals: 5 },
-  { target: 100, label: "Countries supported", suffix: "+" },
+  { target: 5, labelKey: "landing.statSettlementTime", suffix: "s", prefix: "3–" },
+  { target: 0.00001, labelKey: "landing.statAverageFee", prefix: "$", decimals: 5 },
+  { target: 100, labelKey: "landing.statCountriesSupported", suffix: "+" },
 ];
 
 export default function Home() {
   const { publicKey } = useWallet();
+  const { t } = useTranslation();
   const router = useRouter();
+  const { t } = useTranslation();
   const [showConnect, setShowConnect] = useState(false);
 
   const handleWalletConnect = (_publicKey: string) => {
@@ -36,7 +41,7 @@ export default function Home() {
   return (
     <div className="relative overflow-hidden cursor-default select-none">
       <Head>
-        <title>Home | Stellar-MicroPay</title>
+        <title>{t("pages.home.title")}</title>
         <meta name="description" content="Experience lightning-fast micropayments on the Stellar network. Send funds globally for fractions of a cent." />
         <link rel="canonical" href="https://stellar-micropay.vercel.app/" />
       </Head>
@@ -85,55 +90,54 @@ export default function Home() {
         <div className="text-center mb-20 animate-fade-in">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-stellar-500/25 bg-stellar-500/8 text-stellar-400 text-xs font-medium mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-stellar-400 animate-pulse" />
-            Built on Stellar Testnet · Open Source
+            {t("landing.testnetOpenSourceBadge")}
           </div>
 
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold text-white leading-tight mb-6">
-            Money moves at the{" "}
-            <span className="text-gradient">speed of light</span>
+            {t("landing.heroTitleLead")}{" "}
+            <span className="text-gradient">{t("landing.heroTitleAccent")}</span>
           </h1>
 
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Stellar MicroPay lets anyone send tiny payments across borders instant — for fractions of a cent. No bank. No borders. No friction.
+            {t("landing.heroSubtitle")}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             {publicKey ? (
               <Link href="/dashboard" className="btn-primary text-base px-8 py-3.5">
-                Open Dashboard →
+                {t("landing.openDashboard")}
               </Link>
             ) : (
-            <button onClick={() => setShowConnect(true)} className="btn-primary text-base px-8 py-3.5" aria-label="Connect wallet to start sending payments">
-                Connect Wallet & Start
+            <button onClick={() => setShowConnect(true)} className="btn-primary text-base px-8 py-3.5" aria-label={t("landing.connectWalletAria")}>
+                {t("landing.connectAndStart")}
               </button>
             )}
             <a
               href="https://github.com/your-org/stellar-micropay"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="View Stellar-MicroPay source code on GitHub"
+              aria-label={t("landing.viewSourceAria")}
               className="btn-secondary text-base px-8 py-3.5 flex items-center gap-2"
             >
               <GithubIcon className="w-4 h-4" />
-              View on GitHub
+              {t("landing.viewOnGitHub")}
             </a>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-px bg-stellar-500/10 rounded-2xl overflow-hidden mb-24 border border-stellar-500/15 cursor-default">
           {STATS.map((stat) => {
-            const formatValue = () => {
-              if (stat.decimals !== undefined) {
-                return stat.target.toFixed(stat.decimals);
-              }
-              return stat.target.toString();
-            };
+            const formatValue = () =>
+              formatNumber(stat.target, "XLM", {
+                minimumFractionDigits: stat.decimals ?? 0,
+                maximumFractionDigits: stat.decimals ?? 0,
+              });
             return (
-              <div key={stat.label} className="bg-cosmos-900 text-center py-8 px-4">
+              <div key={stat.labelKey} className="bg-cosmos-900 text-center py-8 px-4">
                 <div className="font-display text-3xl font-bold text-gradient mb-1">
                   {stat.prefix || ""}{formatValue()}{stat.suffix || ""}
                 </div>
-                <div className="text-slate-500 text-sm">{stat.label}</div>
+                <div className="text-slate-500 text-sm">{t(stat.labelKey)}</div>
               </div>
             );
           })}
@@ -141,12 +145,12 @@ export default function Home() {
 
         <div className="grid sm:grid-cols-2 gap-5 mb-24">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card hover:border-stellar-500/30 transition-colors group cursor-default">
+            <div key={f.titleKey} className="card hover:border-stellar-500/30 transition-colors group cursor-default">
               <div className="text-2xl mb-3">{f.icon}</div>
               <h3 className="font-display font-semibold text-white mb-2 group-hover:text-stellar-300 transition-colors">
-                {f.title}
+                {t(f.titleKey)}
               </h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
+              <p className="text-slate-400 text-sm leading-relaxed">{t(f.descKey)}</p>
             </div>
           ))}
         </div>
@@ -154,26 +158,26 @@ export default function Home() {
         <section className="mb-24">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-8">
-              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">What is Stellar?</h2>
+              <h2 className="font-display text-3xl sm:text-4xl font-bold text-white mb-3">{t("landing.whatIsStellar")}</h2>
               <p className="text-slate-400 text-sm sm:text-base">
-                A quick explainer for newcomers, with links to the official Stellar docs.
+                {t("landing.whatIsStellarIntro")}
               </p>
             </div>
 
             <div className="space-y-4">
               <details className="card cursor-default group">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-left text-white font-semibold">
-                  <span>What is Stellar?</span>
+                  <span>{t("landing.whatIsStellar")}</span>
                   <span className="text-stellar-400 text-xl transition-transform duration-200 group-open:rotate-45">+</span>
                 </summary>
                 <div className="mt-4 text-sm leading-relaxed text-slate-400 space-y-3">
                   <p>
-                    Stellar is an open blockchain network for moving money quickly and with very low fees. It&apos;s designed for payments, remittances, and cross-border transfers that settle faster than traditional bank systems.
+                    {t("landing.stellarNetworkExplainer")}
                   </p>
                   <p>
-                    Read the official{" "}
+                    {t("landing.readTheOfficial")}{" "}
                     <a href="https://developers.stellar.org/docs/learn/overview" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      Stellar overview
+                      {t("landing.stellarOverview")}
                     </a>
                     .
                   </p>
@@ -182,17 +186,17 @@ export default function Home() {
 
               <details className="card cursor-default group">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-left text-white font-semibold">
-                  <span>What is XLM?</span>
+                  <span>{t("landing.whatIsXLM")}</span>
                   <span className="text-stellar-400 text-xl transition-transform duration-200 group-open:rotate-45">+</span>
                 </summary>
                 <div className="mt-4 text-sm leading-relaxed text-slate-400 space-y-3">
                   <p>
-                    XLM is Stellar&apos;s native asset. It&apos;s used to pay transaction fees and can also be sent directly like any other digital currency.
+                    {t("landing.xlmNativeAssetExplainer")}
                   </p>
                   <p>
-                    See the official{" "}
+                    {t("landing.seeTheOfficial")}{" "}
                     <a href="https://developers.stellar.org/docs/tokens" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      token docs
+                      {t("landing.tokenDocs")}
                     </a>
                     .
                   </p>
@@ -201,17 +205,17 @@ export default function Home() {
 
               <details className="card cursor-default group">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-left text-white font-semibold">
-                  <span>How fast is it?</span>
+                  <span>{t("landing.howFastIsIt")}</span>
                   <span className="text-stellar-400 text-xl transition-transform duration-200 group-open:rotate-45">+</span>
                 </summary>
                 <div className="mt-4 text-sm leading-relaxed text-slate-400 space-y-3">
                   <p>
-                    Stellar transactions typically confirm in just a few seconds, which is why it feels much faster than a bank transfer.
+                    {t("landing.confirmationSpeedExplainer")}
                   </p>
                   <p>
-                    Read about transaction flow in the{" "}
+                    {t("landing.readTransactionFlow")}{" "}
                     <a href="https://developers.stellar.org/docs/learn/fundamentals/transactions" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      official transaction docs
+                      {t("landing.officialTransactionDocs")}
                     </a>
                     .
                   </p>
@@ -220,17 +224,17 @@ export default function Home() {
 
               <details className="card cursor-default group">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-left text-white font-semibold">
-                  <span>How much does it cost?</span>
+                  <span>{t("landing.howMuchDoesItCost")}</span>
                   <span className="text-stellar-400 text-xl transition-transform duration-200 group-open:rotate-45">+</span>
                 </summary>
                 <div className="mt-4 text-sm leading-relaxed text-slate-400 space-y-3">
                   <p>
-                    Fees are tiny—usually a fraction of a cent. That makes Stellar useful for small payments where a bank transfer would be expensive or too slow.
+                    {t("landing.feesExplainer")}
                   </p>
                   <p>
-                    See the official{" "}
+                    {t("landing.seeTheOfficial")}{" "}
                     <a href="https://developers.stellar.org/docs/learn/fundamentals/transactions" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      fee and transaction docs
+                      {t("landing.feeTransactionDocs")}
                     </a>
                     .
                   </p>
@@ -239,21 +243,21 @@ export default function Home() {
 
               <details className="card cursor-default group">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 text-left text-white font-semibold">
-                  <span>Is it safe?</span>
+                  <span>{t("landing.isItSafe")}</span>
                   <span className="text-stellar-400 text-xl transition-transform duration-200 group-open:rotate-45">+</span>
                 </summary>
                 <div className="mt-4 text-sm leading-relaxed text-slate-400 space-y-3">
                   <p>
-                    Stellar uses public-key cryptography, so only the owner of a wallet can sign transactions from it. As with any blockchain app, keeping your recovery phrase and private keys secure is essential.
+                    {t("landing.safetyExplainer")}
                   </p>
                   <p>
-                    Learn more about account security and the network in the{" "}
+                    {t("landing.accountSecurityIntro")}{" "}
                     <a href="https://developers.stellar.org/docs/learn/fundamentals/accounts" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      official account docs
+                      {t("landing.officialAccountDocs")}
                     </a>
-                    {" "}and{" "}
+                    {" "}{t("landing.and")}{" "}
                     <a href="https://developers.stellar.org/docs/networks" target="_blank" rel="noopener noreferrer" className="text-stellar-400 hover:text-stellar-300 underline underline-offset-4">
-                      network docs
+                      {t("landing.networkDocs")}
                     </a>
                     .
                   </p>
@@ -268,7 +272,7 @@ export default function Home() {
             <div className="w-full max-w-md">
               <WalletConnect onConnectSuccess={handleWalletConnect} />
               <button onClick={() => setShowConnect(false)} className="mt-4 w-full text-center text-sm text-slate-500 hover:text-slate-300 transition-colors cursor-pointer">
-                Cancel
+                {t("landing.cancel")}
               </button>
             </div>
           </div>
@@ -282,7 +286,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
             >
-              <span>Discord (#greenpay)</span>
+              <span>{t("landing.discordCommunity")}</span>
             </a>
             <span className="text-slate-600">·</span>
             <a
@@ -291,7 +295,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
             >
-              <span>Telegram Community</span>
+              <span>{t("landing.telegramCommunity")}</span>
             </a>
             <span className="text-slate-600">·</span>
             <a
@@ -300,11 +304,11 @@ export default function Home() {
               rel="noopener noreferrer"
               className="hover:text-stellar-400 transition-colors flex items-center gap-1.5"
             >
-              <span>Contribute on GitHub</span>
+              <span>{t("landing.contributeOnGitHub")}</span>
             </a>
           </div>
           <p className="text-slate-600 text-sm">
-            Open source · MIT License
+            {t("landing.openSourceLicense")}
           </p>
         </div>
       </div>

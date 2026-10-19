@@ -26,14 +26,7 @@ const SendPaymentForm = dynamic(() => import("../components/SendPaymentForm"), {
 const TransactionList = dynamic(() => import("../components/TransactionList"), { ssr: false });
 const MultiSigFlow = dynamic(() => import("../components/MultiSigFlow"), {
   ssr: false,
-  loading: () => (
-    <div className="card mb-6 bg-cosmos-950/80 border-white/10">
-      <div className="flex items-center gap-3 py-8 justify-center">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-stellar-400 border-t-transparent" />
-        <span className="text-sm text-slate-400">Loading multi-sig…</span>
-      </div>
-    </div>
-  ),
+  loading: () => <MultiSigLoading />,
 });
 const OnboardingTour = dynamic(() => import("../components/OnboardingTour"), { ssr: false });
 const BatchPaymentForm = dynamic(() => import("../components/BatchPaymentForm"), { ssr: false });
@@ -47,15 +40,33 @@ const LiveEventsFeed = dynamic(() => import("../components/LiveEventsFeed"), { s
 // so it's loaded on demand with a visible loading state (#610).
 const AIPaymentAssistant = dynamic(() => import("../components/AIPaymentAssistant"), {
   ssr: false,
-  loading: () => (
+  loading: () => <AiAssistantLoading />,
+});
+
+/** Loading placeholders rendered while dynamically-imported panels load. */
+function MultiSigLoading() {
+  const { t } = useTranslation();
+  return (
+    <div className="card mb-6 bg-cosmos-950/80 border-white/10">
+      <div className="flex items-center gap-3 py-8 justify-center">
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-stellar-400 border-t-transparent" />
+        <span className="text-sm text-slate-400">{t("dashboard.loadingMultiSig")}</span>
+      </div>
+    </div>
+  );
+}
+
+function AiAssistantLoading() {
+  const { t } = useTranslation();
+  return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70">
       <div className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900 px-6 py-5 shadow-2xl">
         <span className="h-5 w-5 animate-spin rounded-full border-2 border-stellar-400 border-t-transparent" />
-        <span className="text-sm text-slate-300">Loading AI Payment Assistant…</span>
+        <span className="text-sm text-slate-300">{t("dashboard.loadingAiAssistant")}</span>
       </div>
     </div>
-  ),
-});
+  );
+}
 
 import {
   ResponsiveContainer,
@@ -68,6 +79,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
+
 
 import Toast from "@/components/Toast";
 import ExternalPaymentBanner from "@/components/ExternalPaymentBanner";
@@ -88,7 +100,17 @@ import {
   fetchAllPayments,
   PaymentRecord,
 } from "@/lib/stellar";
-import { formatAsset, formatUSD, copyToClipboard, exportToCSV, shortenAddress } from "@/utils/format";
+import { copyToClipboard, exportToCSV, shortenAddress } from "@/utils/format";
+import {
+  formatAsset,
+  formatDateShort,
+  formatDateTimeShort,
+  formatMonth,
+  formatMonthYear,
+  formatNumber,
+  formatUSD,
+  formatXLM,
+} from "@/utils/intlFormatters";
 import { useToastContext } from "@/lib/ToastContext";
 import { useTranslation } from "@/contexts/I18nContext";
 import { getJwtToken } from "@/lib/auth";
@@ -165,12 +187,7 @@ function saveBalanceSnapshot(
 }
 
 function formatSnapshotTime(savedAt: number) {
-  return new Date(savedAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDateTimeShort(savedAt);
 }
 
 // ─── Dashboard widget drag-to-reorder (#622) ────────────────────────────────
@@ -424,7 +441,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       }
       const d = new Date(p.createdAt);
       points.push({
-        date: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        date: formatDateShort(d),
         balance: parseFloat(runningBal.toFixed(4)),
         timestamp: d.getTime(),
       });
@@ -451,7 +468,9 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       if (payment.id) latestPaymentIdRef.current = payment.id;
 
       if (payment.type === "received") {
-        const message = `You received ${parseFloat(payment.amount).toFixed(2)} XLM`;
+        const message = t("dashboard.receivedPayment", {
+          amount: formatXLM(payment.amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        });
         setIncomingPayment(payment);
         setBubbleMessage(message);
         setShowBubble(true);
@@ -680,7 +699,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       });
     } catch {
       setPaymentStats(null);
-      setPaymentStatsError("Could not load your payment stats.");
+      setPaymentStatsError(t("dashboard.statsLoadFailed"));
     } finally {
       setPaymentStatsLoading(false);
     }
@@ -701,12 +720,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
 
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         months.push({
-          month: d.toLocaleString("default", { month: "short" }),
+          month: formatMonth(d),
           monthIndex: d.getMonth(),
           year: d.getFullYear(),
           sent: 0,
           received: 0,
-          label: d.toLocaleString("default", { month: "long", year: "numeric" }),
+          label: formatMonthYear(d),
         });
       }
 
@@ -763,7 +782,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
         days.push({
-          day: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          day: formatDateShort(d),
           dateKey: `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`,
           sent: 0,
           received: 0,
@@ -817,7 +836,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       const records = await fetchAllPayments(publicKey);
       exportToCSV(records);
     } catch {
-      showToast("Failed to export CSV. Please try again.");
+      showToast(t("dashboard.csvExportFailed"));
     } finally {
       setCsvExporting(false);
     }
@@ -834,7 +853,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   const handleFriendbot = async () => {
     if (!publicKey) return;
     if (!isTestnet) {
-      showToast("Friendbot is only available on testnet.");
+      showToast(t("dashboard.friendbotTestnetOnly"));
       return;
     }
 
@@ -850,16 +869,16 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       });
 
       if (!funded) {
-        showToast("Funding sent, but account is still syncing. Please refresh shortly.");
+        showToast(t("dashboard.fundingSyncing"));
         return;
       }
 
-      setFriendbotSuccessMessage("Success! 10,000 XLM has been credited to your wallet.");
-      showToast("Wallet funded with 10,000 XLM.");
+      setFriendbotSuccessMessage(t("dashboard.fundSuccess"));
+      showToast(t("dashboard.walletFunded"));
 
       setRefreshKey((k) => k + 1);
     } catch {
-      showToast("Friendbot funding failed. Please try again.");
+      showToast(t("dashboard.friendbotFailed"));
     } finally {
       setFriendbotLoading(false);
     }
@@ -931,7 +950,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     if (!publicKey) return;
 
     const ok = await copyToClipboard(publicKey);
-    if (ok) showToast("Address copied!");
+    if (ok) showToast(t("dashboard.addressCopied"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -941,6 +960,26 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     fetchBalance();
   };
 
+
+  // Onboarding tour logic
+  useEffect(() => {
+    if (publicKey) {
+      const hasSeenTour = localStorage.getItem("stellar-micropay:onboarding-completed");
+      if (!hasSeenTour) {
+        setShowOnboardingTour(true);
+      }
+    }
+  }, [publicKey]);
+
+  const handleTourComplete = () => {
+    setShowOnboardingTour(false);
+    localStorage.setItem("stellar-micropay:onboarding-completed", "true");
+  };
+
+  const handleTourSkip = () => {
+    setShowOnboardingTour(false);
+    localStorage.setItem("stellar-micropay:onboarding-completed", "true");
+  };
 
   const handlePaymentSuccess = () => {
     setTimeout(() => {
@@ -963,7 +1002,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     }
 
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      showToast('Push notifications are not supported in this browser.');
+      showToast(t('dashboard.pushNotSupported'));
       return false;
     }
 
@@ -977,7 +1016,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     setNotificationPermission(permission);
 
     if (permission !== 'granted') {
-      showToast('Notification permission was not granted.');
+      showToast(t('dashboard.permissionNotGranted'));
       return false;
     }
 
@@ -1019,18 +1058,18 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     if (notificationEnabled) {
       localStorage.setItem('notificationOptIn', 'false');
       setNotificationEnabled(false);
-      showToast('Payment notifications disabled');
+      showToast(t('dashboard.notificationsDisabled'));
       return;
     }
 
     // --- Enable ---
     if (!('Notification' in window)) {
-      showToast('This browser does not support notifications.');
+      showToast(t('dashboard.browserNoNotifications'));
       return;
     }
 
     if (Notification.permission === 'denied') {
-      showToast('Notifications are blocked. Please enable them in your browser settings.');
+      showToast(t('dashboard.notificationsBlockedHelp'));
       return;
     }
 
@@ -1040,20 +1079,21 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
 
       localStorage.setItem('notificationOptIn', 'true');
       setNotificationEnabled(true);
-      showToast('Payment notifications enabled');
+      showToast(t('dashboard.notificationsEnabled'));
 
       // Confirm with an immediate notification so the user sees it working.
       // Use showNotification() via the service worker registration —
       // this is the Push API-correct method, not new Notification().
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification('Stellar Pay', {
-        body: 'You will now receive notifications for incoming payments.',
+        body: t('dashboard.notificationsEnabledBody'),
         icon: '/favicon.svg',
         badge: '/favicon.svg',
+        data: { url: '/dashboard' },
       });
     } catch (err) {
       console.error('Failed to enable push notifications:', err);
-      showToast('Could not enable notifications. Please try again.');
+      showToast(t('dashboard.enableNotificationsFailed'));
     }
   };
 
@@ -1065,7 +1105,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     if (!notificationEnabled) return;
 
     // In-app bubble for immediate visual feedback
-    setBubbleMessage('You received 10.00 XLM');
+    setBubbleMessage(t('dashboard.testReceivedMessage'));
     setShowBubble(true);
     setTimeout(() => setShowBubble(false), 3000);
 
@@ -1074,9 +1114,10 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       try {
         const registration = await navigator.serviceWorker.ready;
         await registration.showNotification('Stellar Pay — Test', {
-          body: 'You received 10.00 XLM',
+          body: t('dashboard.testReceivedMessage'),
           icon: '/favicon.svg',
           badge: '/favicon.svg',
+          data: { url: '/dashboard' },
         });
       } catch (err) {
         console.error('Test notification failed:', err);
@@ -1161,7 +1202,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Dashboard | Stellar-MicroPay</title>
+        <title>{t("dashboard.metaTitle")}</title>
         <meta name="description" content="Manage your Stellar account, view balances, and send micropayments instantly. Real-time transaction history and wallet summary." />
         <link rel="canonical" href="https://stellar-micropay.vercel.app/dashboard" />
       </Head>
@@ -1242,7 +1283,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       {(() => {
         const widgetContent: Record<DashboardWidgetId, { label: string; node: React.ReactNode }> = {
           stats: {
-            label: "Payment stats",
+            label: t("dashboard.widgetPaymentStats"),
             node: (
               <PaymentStatsWidget
                 stats={paymentStats}
@@ -1253,7 +1294,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
             ),
           },
           monthlySpending: {
-            label: "Monthly spending chart",
+            label: t("dashboard.widgetMonthlySpending"),
             node: (
               <>
                 <MonthlySpendingChart
@@ -1266,22 +1307,22 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                   <div className="mb-8 p-4 rounded-xl bg-stellar-500/5 border border-stellar-500/10 flex items-center justify-between animate-fade-in">
                     <div>
                       <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">
-                        Selected Period: {selectedMonth.label}
+                        {t("dashboard.selectedPeriod", { label: selectedMonth.label })}
                       </p>
                       <div className="flex items-center gap-6">
                         <div>
-                          <span className="text-xs text-slate-400">Total Sent</span>
-                          <p className="text-lg font-bold text-white">{selectedMonth.sent.toFixed(2)} XLM</p>
+                          <span className="text-xs text-slate-400">{t("dashboard.totalSent")}</span>
+                          <p className="text-lg font-bold text-white">{formatXLM(selectedMonth.sent, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-400">Total Received</span>
-                          <p className="text-lg font-bold text-stellar-400">{selectedMonth.received.toFixed(2)} XLM</p>
+                          <span className="text-xs text-slate-400">{t("dashboard.totalReceived")}</span>
+                          <p className="text-lg font-bold text-stellar-400">{formatXLM(selectedMonth.received, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                         </div>
                       </div>
                     </div>
                     <button
                       onClick={() => setSelectedMonth(null)}
-                      aria-label="Close month details"
+                      aria-label={t("dashboard.closeMonthDetails")}
                       className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5 cursor-pointer"
                     >
                       <CloseIcon className="w-5 h-5" />
@@ -1292,18 +1333,18 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
             ),
           },
           thirtyDayVolume: {
-            label: "30-day volume chart",
+            label: t("dashboard.widgetThirtyDayVolume"),
             node: <ThirtyDayVolumeChart data={thirtyDayData} loading={thirtyDayLoading} />,
           },
           analytics: {
-            label: "Top recipients and export",
+            label: t("dashboard.widgetAnalytics"),
             node: (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <TopRecipientsWidget recipients={topRecipients} loading={topRecipientsLoading} />
                 <div className="card flex flex-col justify-between">
                   <div>
-                    <h2 className="font-display text-lg font-semibold text-white mb-2">Export Payment History</h2>
-                    <p className="text-sm text-slate-400">Download your full transaction history as a CSV file.</p>
+                    <h2 className="font-display text-lg font-semibold text-white mb-2">{t("dashboard.exportTitle")}</h2>
+                    <p className="text-sm text-slate-400">{t("dashboard.exportDescription")}</p>
                   </div>
                   <button
                     onClick={handleExportCSV}
@@ -1313,17 +1354,17 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                     {csvExporting ? (
                       <>
                         <div className="w-4 h-4 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
-                        Exporting…
+                        {t("dashboard.exporting")}
                       </>
                     ) : (
                       <>
                         <DownloadIcon className="w-4 h-4" />
-                        Export CSV
+                        {t("dashboard.exportCsv")}
                       </>
                     )}
                   </button>
                   <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Notes are local to this browser and will be included in the export.
+                    {t("dashboard.exportNotes")}
                   </p>
                 </div>
               </div>
@@ -1357,7 +1398,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
             <button
               onClick={() => setAddressExpanded((x) => !x)}
               className="font-mono text-sm text-slate-300 select-text cursor-pointer hover:text-white transition-colors text-left break-all"
-              title={addressExpanded ? "Click to collapse" : "Click to show full address"}
+              title={addressExpanded ? t("dashboard.clickToCollapse") : t("dashboard.clickToExpand")}
             >
               {addressExpanded
                 ? publicKey
@@ -1370,11 +1411,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
               >
                 {copied ? (
                   <>
-                    <CheckIcon className="w-3.5 h-3.5" /> Copied!
+                    <CheckIcon className="w-3.5 h-3.5" /> {t("dashboard.copied")}
                   </>
                 ) : (
                   <>
-                    <CopyIcon className="w-3.5 h-3.5" /> Copy address
+                    <CopyIcon className="w-3.5 h-3.5" /> {t("dashboard.copyAddress")}
                   </>
                 )}
               </button>
@@ -1383,7 +1424,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                 onClick={() => setAddressExpanded((x) => !x)}
                 className="text-xs text-slate-400 hover:text-slate-300 transition-colors cursor-pointer"
               >
-                {addressExpanded ? "Collapse" : "Show full"}
+                {addressExpanded ? t("dashboard.collapse") : t("dashboard.showFull")}
               </button>
             </div>
           </div>
@@ -1395,22 +1436,20 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
             ) : xlmBalance !== null ? (
               <div>
                 <div className={`font-display text-3xl font-bold text-white ${balanceFlash ? "balance-flash" : ""}`}>
-                  {parseFloat(xlmBalance).toLocaleString("en-US", {
-                    maximumFractionDigits: 4,
-                  })}
+                  {formatNumber(xlmBalance, "XLM", { maximumFractionDigits: 4 })}
                   <span className="text-stellar-400 text-xl ml-2">XLM</span>
                 </div>
                 {xlmPrice !== null && (
                   <p className="text-sm text-slate-400 mt-0.5">
                     {formatUSD(parseFloat(xlmBalance) * xlmPrice)}{" "}
                     <span className="text-[11px] text-slate-500">
-                      ≈ {fiatSymbol} {((parseFloat(xlmBalance) * xlmPrice * fiatRate)).toFixed(2)} {fiatCurrency}
+                      ≈ {fiatSymbol} {formatNumber(parseFloat(xlmBalance) * xlmPrice * fiatRate, "XLM", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {fiatCurrency}
                     </span>
                   </p>
                 )}
                 {staleBalanceAt && (
                   <p className="mt-1 inline-flex items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[11px] font-medium text-amber-200">
-                    Offline snapshot from {formatSnapshotTime(staleBalanceAt)}
+                    {t("dashboard.offlineSnapshot", { time: formatSnapshotTime(staleBalanceAt) })}
                   </p>
                 )}
                 {!sparklineLoading && sparklineData.length > 0 && (
@@ -1424,10 +1463,10 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                   disabled={balanceLoading}
                 >
                   <RefreshIcon className={`w-3 h-3 ${isRefreshingBalance ? "animate-spin" : ""}`} />
-                  {isRefreshingBalance ? "Refreshing..." : "Refresh"}
+                  {isRefreshingBalance ? t("dashboard.refreshing") : t("dashboard.refresh")}
                 </button>
                 <p className="mt-1 text-[11px] text-slate-400 sm:text-right">
-                  Refreshing in {refreshCountdown}s
+                  {t("dashboard.refreshingIn", { seconds: refreshCountdown })}
                 </p>
               </div>
             ) : accountNotFound && isTestnet ? (
@@ -1441,7 +1480,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
               </div>
             ) : (
               <div>
-                <p className="text-slate-400 text-sm">Failed to load</p>
+                <p className="text-slate-400 text-sm">{t("dashboard.failedToLoad")}</p>
                 <button
                   onClick={fetchBalance}
                   className="text-xs text-stellar-400 hover:underline cursor-pointer"
@@ -1473,6 +1512,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         )}
       </div>
 
+      <PaymentInsightsCard
+        payments={recentPaymentsForStats}
+        publicKey={publicKey}
+        loading={spendingLoading}
+      />
+
       {/* Reserve warning (#164). Amber when balance is within 2 XLM of the
           minimum reserve, red when at or below it. Suppressed when the
           account isn't funded — the Friendbot card below covers that path. */}
@@ -1496,12 +1541,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
           >
             <p className="font-semibold mb-1">{headline}</p>
             <p className="text-sm opacity-90">
-              You hold <strong>{bal.toFixed(4)} XLM</strong>. Your account
-              must keep at least{" "}
-              <strong>{min.toFixed(4)} XLM</strong> reserved
-              ({subentryCount} subentries × 0.5 XLM + 2 XLM base). Top up
-              before submitting transactions to avoid{" "}
-              <code className="text-xs opacity-80">tx_insufficient_balance</code>.
+              {t("dashboard.reserveDetails", {
+                balance: formatXLM(bal, { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+                minimum: formatXLM(min, { minimumFractionDigits: 4, maximumFractionDigits: 4 }),
+                subentries: subentryCount,
+              })}
             </p>
             <p className="text-sm mt-2">
               <a
@@ -1510,7 +1554,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
                 rel="noopener noreferrer"
                 className="underline hover:opacity-100 opacity-80"
               >
-                Stellar base reserves docs →
+                {t("dashboard.baseReservesDocs")}
               </a>
             </p>
           </div>
@@ -1551,6 +1595,12 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         </div>
       )}
 
+      {/* USDC trustline onboarding (#1069) — one-click "Add USDC" when missing */}
+      <AddUsdcTrustline
+        publicKey={publicKey}
+        onTrustlineAdded={() => setRefreshKey((k) => k + 1)}
+      />
+
       {/* USDC balance card — shown only when account has USDC trustline */}
       {usdcBalance !== null && (
         <div className="card mb-6 bg-gradient-to-br from-cosmos-800 to-cosmos-900 border-blue-500/20 relative overflow-hidden">
@@ -1570,7 +1620,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         <div key={b.code} className="card mb-4 bg-gradient-to-br from-cosmos-800 to-cosmos-900 border-violet-500/20 relative overflow-hidden">
           <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="label mb-1">{b.code} Balance</p>
+              <p className="label mb-1">{t("dashboard.assetBalance", { asset: b.code })}</p>
               <div className="font-display text-3xl font-bold text-white">
                 {formatAsset(b.balance, b.code)}
               </div>
@@ -1744,6 +1794,7 @@ function DraggableWidget({
   onDragEnd: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       onDragOver={onDragOver}
@@ -1759,8 +1810,8 @@ function DraggableWidget({
         draggable
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
-        title="Drag to reorder"
-        aria-label={`Drag to reorder ${dragHandleLabel}`}
+        title={t("dashboard.dragToReorder")}
+        aria-label={t("dashboard.dragToReorderWidget", { widget: dragHandleLabel })}
         className="absolute -top-2 right-2 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity bg-white/10 hover:bg-white/20 border border-white/10 rounded-full p-1.5"
       >
         <GripIcon className="w-4 h-4 text-slate-300" />
@@ -1857,26 +1908,21 @@ function PaymentStatsWidget({
   return (
     <section className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
       <StatsCard
-        label="Total Sent"
+        label={t("dashboard.totalSent")}
         value={formatStatsXLM(stats.totalSentXLM, t("dashboard.suffixSent"))}
-        helper={`${stats.sentCount} outgoing payment${stats.sentCount === 1 ? "" : "s"}`}
+        helper={t("dashboard.outgoingPayments", { count: stats.sentCount })}
         delta={volumeDelta}
         deltaType={typeof volumeDelta === "number" ? (volumeDelta > 0 ? "positive" : volumeDelta < 0 ? "negative" : "neutral") : undefined}
       />
       <StatsCard
         label={t("dashboard.totalReceived")}
         value={formatStatsXLM(stats.totalReceivedXLM, t("dashboard.suffixReceived"))}
-        helper={t(
-          stats.receivedCount === 1
-            ? "dashboard.incomingPayments"
-            : "dashboard.incomingPaymentsPlural",
-          { count: stats.receivedCount }
-        )}
+        helper={t("dashboard.incomingPayments", { count: stats.receivedCount })}
       />
       <StatsCard
         label={t("dashboard.transactions")}
-        value={stats.totalTransactions.toLocaleString("en-US")}
-        helper="Across sent and received activity"
+        value={formatNumber(stats.totalTransactions, "XLM", { maximumFractionDigits: 0 })}
+        helper={t("dashboard.acrossActivity")}
         delta={countDelta}
         deltaType={typeof countDelta === "number" ? (countDelta > 0 ? "positive" : countDelta < 0 ? "negative" : "neutral") : undefined}
       />
@@ -1948,13 +1994,14 @@ function MonthlySpendingChart({
 }
 
 function ThirtyDayVolumeChart({ data, loading }: { data: any[]; loading: boolean }) {
+  const { t } = useTranslation();
   if (loading && data.length === 0) {
     return <div className="card mb-6 h-[280px] animate-pulse bg-white/[0.03] border-white/10" />;
   }
   const visibleData = data.filter((_: any, i: number) => i % 5 === 0 || i === data.length - 1);
   return (
     <div className="card mb-6 overflow-hidden">
-      <h2 className="font-display text-lg font-semibold text-white mb-6">30-Day Volume (XLM)</h2>
+      <h2 className="font-display text-lg font-semibold text-white mb-6">{t("dashboard.thirtyDayVolumeTitle")}</h2>
       <div className="h-[220px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
@@ -1977,8 +2024,8 @@ function ThirtyDayVolumeChart({ data, loading }: { data: any[]; loading: boolean
               contentStyle={{ backgroundColor: "#0f172a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}
               itemStyle={{ color: "#38bdf8" }}
             />
-            <Bar dataKey="sent" fill="#38bdf8" name="Sent" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="received" fill="#34d399" name="Received" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="sent" fill="#38bdf8" name={t("dashboard.sent")} radius={[3, 3, 0, 0]} />
+            <Bar dataKey="received" fill="#34d399" name={t("dashboard.received")} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -2071,9 +2118,10 @@ function TopRecipientsWidget({
   recipients: Array<{ address: string; totalXLMSent: string }>;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="card">
-      <h2 className="font-display text-lg font-semibold text-white mb-4">Top Recipients</h2>
+      <h2 className="font-display text-lg font-semibold text-white mb-4">{t("dashboard.topRecipients")}</h2>
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -2081,7 +2129,7 @@ function TopRecipientsWidget({
           ))}
         </div>
       ) : recipients.length === 0 ? (
-        <p className="text-sm text-slate-400">No sent payments yet.</p>
+        <p className="text-sm text-slate-400">{t("dashboard.noSentPayments")}</p>
       ) : (
         <ol className="space-y-2">
           {recipients.map((r, idx) => (
@@ -2090,7 +2138,7 @@ function TopRecipientsWidget({
                 <span className="text-xs font-bold text-stellar-400 w-5 text-center">{idx + 1}</span>
                 <span className="font-mono text-sm text-slate-200">{shortenAddress(r.address)}</span>
               </div>
-              <span className="text-sm font-semibold text-white">{parseFloat(r.totalXLMSent).toFixed(2)} XLM</span>
+              <span className="text-sm font-semibold text-white">{formatXLM(r.totalXLMSent, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </li>
           ))}
         </ol>
@@ -2146,10 +2194,10 @@ function formatStatsXLM(amount: string, suffix: string) {
 
   if (Number.isNaN(value)) return `0.00 XLM ${suffix}`.trim();
 
-  return `${value.toLocaleString("en-US", {
+  return `${formatAsset(value, "XLM", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 7,
-  })} XLM ${suffix}`.trim();
+  })} ${suffix}`.trim();
 }
 
 // ─── Sparkline chart ─────────────────────────────────────────────────────────
@@ -2160,6 +2208,7 @@ function formatStatsXLM(amount: string, suffix: string) {
  * Hover tooltip shows the running balance delta at each data point.
  */
 function BalanceSparkline({ data }: { data: number[] }) {
+  const { t } = useTranslation();
   const W = 160;
   const H = 40;
   const PAD = 4;
@@ -2187,13 +2236,13 @@ function BalanceSparkline({ data }: { data: number[] }) {
     ` L ${points[points.length - 1].x},${H - PAD} Z`;
 
   return (
-    <div className="relative inline-block" aria-label="Balance sparkline chart">
+    <div className="relative inline-block" aria-label={t("dashboard.sparklineLabel")}>
       <svg
         width={W}
         height={H}
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label={`Balance trend: ${trend ? "upward" : "downward"}`}
+        aria-label={t("dashboard.balanceTrendLabel", { direction: trend ? t("dashboard.trendUpward") : t("dashboard.trendDownward") })}
       >
         {/* Fill area */}
         <path d={fillPath} fill={fillColor} />
@@ -2236,14 +2285,14 @@ function BalanceSparkline({ data }: { data: number[] }) {
                 style={{ fontSize: "10px" }}
               >
                 {p.value >= 0 ? "+" : ""}
-                {p.value.toFixed(4)} XLM
+                {formatXLM(p.value, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}
               </div>
             </foreignObject>
           </g>
         ))}
       </svg>
       <p className="text-xs mt-0.5" style={{ color, fontSize: "10px" }}>
-        {trend ? "▲ Upward trend" : "▼ Downward trend"}
+        {trend ? t("dashboard.upwardTrend") : t("dashboard.downwardTrend")}
       </p>
     </div>
   );

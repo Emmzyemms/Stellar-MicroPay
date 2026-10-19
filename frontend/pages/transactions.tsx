@@ -12,7 +12,8 @@ import TransactionList, {
   TransactionFilters,
 } from "@/components/TransactionList";
 import { fetchAllPayments, getNetwork, shortenAddress, PaymentRecord } from "@/lib/stellar";
-import { exportToCSV, exportToJSON, formatAsset, formatDate } from "@/utils/format";
+import { exportToCSV, exportToJSON } from "@/utils/format";
+import { formatAsset, formatDate } from "@/utils/intlFormatters";
 import { useWallet } from "@/lib/useWallet";
 import ReceiptsList, { receiptDate } from "@/components/ReceiptsList";
 import {
@@ -23,17 +24,18 @@ import {
   OnChainReceipt,
 } from "@/lib/receipts";
 import { loadAllPaymentNotes } from "@/lib/usePaymentNotes";
+import { useTranslation } from "@/contexts/I18nContext";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const TRANSACTION_FILTERS_STORAGE_KEY = "stellar-micropay:transaction-filters";
 
 const DIRECTION_FILTERS: Array<{
-  label: string;
+  labelKey: string;
   value: TransactionDirectionFilter;
 }> = [
-  { label: "All", value: "all" },
-  { label: "Sent", value: "sent" },
-  { label: "Received", value: "received" },
+  { labelKey: "transactions.directionAll", value: "all" },
+  { labelKey: "transactions.directionSent", value: "sent" },
+  { labelKey: "transactions.directionReceived", value: "received" },
 ];
 
 type TransactionsView = "history" | "receipts";
@@ -50,6 +52,7 @@ function isDirectionFilter(value: unknown): value is TransactionDirectionFilter 
 }
 
 export default function Transactions() {
+  const { t } = useTranslation();
   const { publicKey } = useWallet();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [exporting, setExporting] = useState(false);
@@ -88,7 +91,7 @@ export default function Transactions() {
     (memoSearch.trim() !== "" ? 1 : 0);
   const hasActiveFilters = activeFilterCount > 0;
   const exportPayments = filteredPayments;
-  const networkLabel = getNetwork() === "mainnet" ? "Mainnet" : "Testnet";
+  const networkLabel = getNetwork() === "mainnet" ? t("settings.network.mainnet") : t("settings.network.testnet");
 
   // Receives the latest payments array from the list whenever it changes
   const handlePaymentsChange = useCallback((records: PaymentRecord[]) => {
@@ -174,42 +177,42 @@ export default function Transactions() {
   const handlePrintReceipt = useCallback(
     (payment: PaymentRecord) => {
       setPrintableReceipt({
-        title: "Payment Receipt",
+        title: t("transactions.receiptTitle"),
         date: formatDate(payment.createdAt),
-        subtitle: payment.type === "sent" ? "Sent" : "Received",
+        subtitle: payment.type === "sent" ? t("transactions.directionSent") : t("transactions.directionReceived"),
         rows: [
-          { label: "Date", value: formatDate(payment.createdAt) },
-          { label: "Amount", value: formatAsset(payment.amount, payment.asset) },
-          { label: "Sender", value: payment.from, mono: true },
-          { label: "Recipient", value: payment.to, mono: true },
-          { label: "Memo", value: payment.memo || "-" },
-          { label: "Transaction Hash", value: payment.transactionHash, mono: true },
-          { label: "Network", value: networkLabel },
+          { label: t("transactions.receiptRowDate"), value: formatDate(payment.createdAt) },
+          { label: t("transactions.receiptRowAmount"), value: formatAsset(payment.amount, payment.asset) },
+          { label: t("transactions.receiptRowSender"), value: payment.from, mono: true },
+          { label: t("transactions.receiptRowRecipient"), value: payment.to, mono: true },
+          { label: t("transactions.receiptRowMemo"), value: payment.memo || "-" },
+          { label: t("transactions.receiptRowHash"), value: payment.transactionHash, mono: true },
+          { label: t("transactions.receiptRowNetwork"), value: networkLabel },
         ],
       });
     },
-    [networkLabel]
+    [networkLabel, t]
   );
 
   const handlePrintOnChainReceipt = useCallback(
     (receipt: OnChainReceipt) => {
       setPrintableReceipt({
-        title: `On-chain Receipt #${receipt.index}`,
+        title: t("transactions.onChainReceiptTitle", { index: receipt.index }),
         date: receiptDate(receipt),
-        subtitle: "Minted",
+        subtitle: t("transactions.receiptRowMinted"),
         rows: [
-          { label: "Receipt", value: `#${receipt.index}` },
-          { label: "Minted", value: receiptDate(receipt) },
-          { label: "Amount", value: `${stroopsToXlm(receipt.amountStroops)} XLM` },
-          { label: "Payer", value: receipt.from, mono: true },
-          { label: "Payee", value: receipt.to, mono: true },
-          { label: "Memo", value: receipt.memo || "-" },
-          { label: "Ledger", value: String(receipt.ledger) },
-          { label: "Network", value: networkLabel },
+          { label: t("transactions.receiptRowReceipt"), value: `#${receipt.index}` },
+          { label: t("transactions.receiptRowMinted"), value: receiptDate(receipt) },
+          { label: t("transactions.receiptRowAmount"), value: `${stroopsToXlm(receipt.amountStroops)} XLM` },
+          { label: t("transactions.receiptRowPayer"), value: receipt.from, mono: true },
+          { label: t("transactions.receiptRowPayee"), value: receipt.to, mono: true },
+          { label: t("transactions.receiptRowMemo"), value: receipt.memo || "-" },
+          { label: t("transactions.receiptRowLedger"), value: String(receipt.ledger) },
+          { label: t("transactions.receiptRowNetwork"), value: networkLabel },
         ],
       });
     },
-    [networkLabel]
+    [networkLabel, t]
   );
 
   const handleMintReceipt = useCallback(
@@ -221,7 +224,7 @@ export default function Transactions() {
       try {
         const { index } = await mintReceiptForPayment(payment, publicKey);
         setMintedReceiptHashes((prev) => ({ ...prev, [payment.transactionHash]: index }));
-        setMintSuccess(`Receipt #${index} minted on-chain.`);
+        setMintSuccess(t("transactions.receiptMinted", { index }));
         setReceiptsRefreshKey((n) => n + 1);
       } catch (err) {
         setMintError(describeReceiptError(err));
@@ -229,7 +232,7 @@ export default function Transactions() {
         setMintingReceiptHash(null);
       }
     },
-    [publicKey]
+    [publicKey, t]
   );
 
   useEffect(() => {
@@ -274,9 +277,9 @@ export default function Transactions() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 cursor-default select-none">
         <div className="text-center mb-10">
           <h1 className="font-display text-3xl font-bold text-white mb-3">
-            {`Transaction History`}
+            {t("transactions.title")}
           </h1>
-          <p className="text-slate-400">{`Connect your wallet to view your payments`}</p>
+          <p className="text-slate-400">{t("transactions.connectPrompt")}</p>
         </div>
         <WalletConnect />
       </div>
@@ -287,7 +290,7 @@ export default function Transactions() {
     // Added cursor-default and select-none to the main page wrapper
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10 animate-fade-in cursor-default select-none">
       <Head>
-        <title>Transaction History | Stellar-MicroPay</title>
+        <title>{t("pages.transactions.title")}</title>
         <meta name="description" content="View your full Stellar transaction history, export data as CSV or JSON, and print payment receipts. Secure and transparent." />
         <link rel="canonical" href="https://stellar-micropay.vercel.app/transactions" />
       </Head>
@@ -295,10 +298,10 @@ export default function Transactions() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold text-white mb-1">
-            {`Transaction History`}
+            {t("transactions.title")}
           </h1>
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span>{`Account:`}</span>
+            <span>{t("transactions.accountLabel")}</span>
             {/* Added select-text and cursor-text so the address pill remains functional */}
             <span className="address-pill select-text cursor-text">{shortenAddress(publicKey)}</span>
           </div>
@@ -311,8 +314,8 @@ export default function Transactions() {
             disabled={exportPayments.length === 0 || exporting || !publicKey}
             title={
               exportPayments.length === 0
-                ? "No transactions to export"
-                : "Export full history as CSV"
+                ? t("transactions.noToExport")
+                : t("transactions.exportCsvTitle")
             }
             className={[
               "inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-lg",
@@ -325,7 +328,7 @@ export default function Transactions() {
             {exporting && exportFormat === "csv" ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
-                {`Exporting…`}
+                {t("transactions.exporting")}
               </>
             ) : (
               <>
@@ -343,7 +346,7 @@ export default function Transactions() {
                     d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
                   />
                 </svg>
-                {`Download CSV`}
+                {t("transactions.downloadCsv")}
               </>
             )}
           </button>
@@ -353,8 +356,8 @@ export default function Transactions() {
             disabled={exportPayments.length === 0 || exporting || !publicKey}
             title={
               exportPayments.length === 0
-                ? "No transactions to export"
-                : "Export full history as JSON"
+                ? t("transactions.noToExport")
+                : t("transactions.exportJsonTitle")
             }
             className={[
               "inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2 rounded-lg",
@@ -367,7 +370,7 @@ export default function Transactions() {
             {exporting && exportFormat === "json" ? (
               <>
                 <div className="w-3.5 h-3.5 border-2 border-stellar-400 border-t-transparent rounded-full animate-spin" />
-                {`Exporting…`}
+                {t("transactions.exporting")}
               </>
             ) : (
               <>
@@ -381,27 +384,27 @@ export default function Transactions() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17h6m-6-4h6m-6-4h6M6.75 3h10.5A2.25 2.25 0 0119.5 5.25v13.5A2.25 2.25 0 0117.25 21H6.75A2.25 2.25 0 014.5 18.75V5.25A2.25 2.25 0 016.75 3z" />
                 </svg>
-                {`Download JSON`}
+                {t("transactions.downloadJson")}
               </>
             )}
           </button>
 
           <Link href="/dashboard" className="btn-secondary text-sm py-2 px-4 cursor-pointer">
-            {`← Dashboard`}
+            {t("transactions.backToDashboard")}
           </Link>
         </div>
       </div>
 
       {exporting && (
         <p className="mb-4 text-xs text-slate-400">
-          {`Preparing full account history export… ${exportCount} records processed.`}
+          {t("transactions.exportProgress", { count: exportCount })}
         </p>
       )}
 
       {/* Export hint */}
       <div className="mb-5 p-3 rounded-xl bg-stellar-500/5 border border-stellar-500/15 flex items-center justify-between">
         <p className="text-xs text-slate-400">
-          {`Showing your transaction history. Click "Load more" to view older transactions.`}
+          {t("transactions.historyHint")}
         </p>
         <a
           href={`https://stellar.expert/explorer/testnet/account/${publicKey}`}
@@ -409,20 +412,20 @@ export default function Transactions() {
           rel="noopener noreferrer"
           className="text-xs text-stellar-400 hover:text-stellar-300 transition-colors whitespace-nowrap ml-4 cursor-pointer"
         >
-          {`Full history →`}
+          {t("transactions.fullHistory")}
         </a>
       </div>
 
       {/* View switcher */}
       <div
         role="tablist"
-        aria-label="Transactions view"
+        aria-label={t("transactions.viewSwitcherLabel")}
         className="mb-5 inline-flex rounded-xl border border-white/10 bg-cosmos-900/70 p-1"
       >
         {([
-          { label: "History", value: "history" },
-          { label: "Receipts", value: "receipts" },
-        ] as Array<{ label: string; value: TransactionsView }>).map((option) => (
+          { labelKey: "transactions.viewHistory", value: "history" },
+          { labelKey: "transactions.viewReceipts", value: "receipts" },
+        ] as Array<{ labelKey: string; value: TransactionsView }>).map((option) => (
           <button
             key={option.value}
             type="button"
@@ -436,7 +439,7 @@ export default function Transactions() {
                 : "text-slate-500 hover:text-slate-200",
             ].join(" ")}
           >
-            {option.label}
+            {t(option.labelKey)}
           </button>
         ))}
       </div>
@@ -448,7 +451,7 @@ export default function Transactions() {
             type="button"
             onClick={() => setMintError(null)}
             className="text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
-            aria-label="Dismiss receipt error"
+            aria-label={t("transactions.dismissError")}
           >
             ×
           </button>
@@ -463,7 +466,7 @@ export default function Transactions() {
             onClick={() => setView("receipts")}
             className="text-xs font-medium text-stellar-400 hover:text-stellar-300 cursor-pointer"
           >
-            View receipts →
+            {t("transactions.viewReceiptsLink")}
           </button>
         </div>
       )}
@@ -484,16 +487,16 @@ export default function Transactions() {
           <div>
             <div className="mb-3 flex items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                Filters
+                {t("transactions.filters")}
               </span>
               <span className="rounded-full border border-stellar-500/25 bg-stellar-500/10 px-2 py-0.5 text-[11px] font-medium text-stellar-300">
-                {activeFilterCount} active
+                {t("transactions.activeCount", { count: activeFilterCount })}
               </span>
             </div>
 
             <div
               role="group"
-              aria-label="Transaction direction"
+              aria-label={t("transactions.directionLabel")}
               className="inline-flex rounded-xl border border-white/10 bg-cosmos-900/70 p-1"
             >
               {DIRECTION_FILTERS.map((option) => {
@@ -512,7 +515,7 @@ export default function Transactions() {
                         : "text-slate-500 hover:text-slate-200",
                     ].join(" ")}
                   >
-                    {option.label}
+                    {t(option.labelKey)}
                   </button>
                 );
               })}
@@ -521,7 +524,7 @@ export default function Transactions() {
 
           <div className="w-full sm:w-56">
             <label htmlFor="minimum-amount" className="label mb-2">
-              Minimum Amount
+              {t("transactions.minimumAmount")}
             </label>
             <div className="relative">
               <input
@@ -543,14 +546,14 @@ export default function Transactions() {
 
           <div className="w-full sm:w-56">
             <label htmlFor="memo-search" className="label mb-2">
-              Search Memo
+              {t("transactions.searchMemo")}
             </label>
             <input
               id="memo-search"
               type="text"
               value={memoSearch}
               onChange={(event) => setMemoSearch(event.target.value)}
-              placeholder="Filter by memo text…"
+              placeholder={t("transactions.memoSearchPlaceholder")}
               className="input-field py-2.5"
             />
           </div>
@@ -559,16 +562,17 @@ export default function Transactions() {
         {hasActiveFilters && (
           <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">
-              {`Showing ${filteredPayments.length} of ${payments.length} loaded transaction${
-                payments.length !== 1 ? "s" : ""
-              }`}
+              {t("transactions.showingLoaded", {
+                shown: filteredPayments.length,
+                count: payments.length,
+              })}
             </p>
             <button
               type="button"
               onClick={handleResetFilters}
               className="self-start text-xs font-medium text-stellar-400 transition-colors hover:text-stellar-300 sm:self-auto"
             >
-              Reset filters
+              {t("transactions.resetFilters")}
             </button>
           </div>
         )}
@@ -605,7 +609,7 @@ export default function Transactions() {
               </div>
               <div className="text-right">
                 <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                  Network
+                  {t("transactions.receiptRowNetwork")}
                 </p>
                 <p className="text-lg font-semibold text-slate-900">{networkLabel}</p>
                 <p className="text-sm text-slate-500 capitalize">{printableReceipt.subtitle}</p>
@@ -619,7 +623,7 @@ export default function Transactions() {
             </dl>
 
             <div className="mt-8 border-t border-slate-200 pt-4 text-xs text-slate-500">
-              Generated by Stellar MicroPay using browser print-to-PDF.
+              {t("transactions.generatedBy")}
             </div>
           </div>
         )}

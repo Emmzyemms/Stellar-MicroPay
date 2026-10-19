@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "paths": {
+      "@nestjs/common": ["./__mocks__/@nestjs/common"]
+    }
+  },
+  "include": ["src/**/*", "__tests__/**/*", "__mocks__/**/*"]
+}
