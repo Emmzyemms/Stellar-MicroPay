@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatAssetPrecise, formatDateFull } from "@/utils/intlFormatters";
 import { useTranslation } from "@/contexts/I18nContext";
+import { useModalFocusTrap } from "@/hooks/useModalFocusTrap";
 
 export type PaymentStepId = "building" | "signing" | "submitting" | "confirming";
 export type PaymentFlowStatus =
@@ -38,17 +39,17 @@ export interface PaymentReceiptDetails {
 }
 
 interface PaymentStatusModalProps {
-  isOpen: boolean;
-  status: PaymentFlowStatus;
-  txHash: string | null;
-  error: string | null;
-  failedStep: PaymentStepId | null;
-  stepTimings: Record<PaymentStepId, PaymentStepTiming>;
-  onClose: () => void;
-  explorerHref?: string | null;
-  timeoutSeconds?: number;
+  readonly isOpen: boolean;
+  readonly status: PaymentFlowStatus;
+  readonly txHash: string | null;
+  readonly error: string | null;
+  readonly failedStep: PaymentStepId | null;
+  readonly stepTimings: Record<PaymentStepId, PaymentStepTiming>;
+  readonly onClose: () => void;
+  readonly explorerHref?: string | null;
+  readonly timeoutSeconds?: number;
   /** Payment details for the printable receipt (success state). */
-  receipt?: PaymentReceiptDetails | null;
+  readonly receipt?: PaymentReceiptDetails | null;
 }
 
 const STEP_ORDER: Array<{ id: PaymentStepId; labelKey: string }> = [
@@ -69,11 +70,16 @@ export default function PaymentStatusModal({
   explorerHref,
   timeoutSeconds = TX_TIMEOUT_SECONDS,
   receipt,
-}: PaymentStatusModalProps) {
+}: Readonly<PaymentStatusModalProps>) {
   const { t } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
 
   const isTerminal = status === "success" || status === "error";
+
+  const dialogRef = useModalFocusTrap<HTMLDivElement>({
+    isOpen,
+    onClose,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,20 +88,6 @@ export default function PaymentStatusModal({
     const interval = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(interval);
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || !isTerminal) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, isTerminal, onClose]);
 
   const progress = useMemo(() => {
     const completedCount = STEP_ORDER.filter(
@@ -114,6 +106,18 @@ export default function PaymentStatusModal({
   }, [status, stepTimings]);
 
   if (!isOpen) return null;
+
+  const getStatusTitle = () => {
+    if (status === "success") return t("paymentStatus.complete");
+    if (status === "error") return t("paymentStatus.paymentFailed");
+    return t("paymentStatus.processingPayment");
+  };
+
+  const getStatusDescription = () => {
+    if (status === "success") return t("paymentStatus.successDescription");
+    if (status === "error") return t("paymentStatus.failureDescription");
+    return t("paymentStatus.processingDescription");
+  };
 
   // Issue #1045 — print receipt: mark the body so the print stylesheet
   // hides everything except the receipt block, then invoke the browser
@@ -145,10 +149,12 @@ export default function PaymentStatusModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-status-title"
-        className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
+        tabIndex={-1}
+        className="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
       >
         <div className="border-b border-white/10 px-6 py-5">
           <div className="flex items-start justify-between gap-4">
@@ -160,18 +166,10 @@ export default function PaymentStatusModal({
                 id="payment-status-title"
                 className="mt-2 font-display text-xl font-semibold text-white"
               >
-                {status === "success"
-                  ? t("paymentStatus.complete")
-                  : status === "error"
-                    ? t("paymentStatus.paymentFailed")
-                    : t("paymentStatus.processingPayment")}
+                {getStatusTitle()}
               </h3>
               <p className="mt-1 text-sm text-slate-400">
-                {status === "success"
-                  ? t("paymentStatus.successDescription")
-                  : status === "error"
-                    ? t("paymentStatus.failureDescription")
-                    : t("paymentStatus.processingDescription")}
+                {getStatusDescription()}
               </p>
             </div>
 
@@ -351,6 +349,8 @@ export default function PaymentStatusModal({
   );
 }
 
+type StepState = "pending" | "current" | "complete" | "failed";
+
 function getStepState({
   id,
   status,
@@ -361,7 +361,7 @@ function getStepState({
   status: PaymentFlowStatus;
   failedStep: PaymentStepId | null;
   timing: PaymentStepTiming;
-}): "pending" | "current" | "complete" | "failed" {
+}): StepState {
   if (failedStep === id || timing.error) return "failed";
   if (timing.completedAt) return "complete";
   if (status === id) return "current";
@@ -369,7 +369,7 @@ function getStepState({
   return "pending";
 }
 
-function getStepCaptionKey(state: "pending" | "current" | "complete" | "failed") {
+function getStepCaptionKey(state: StepState) {
   if (state === "complete") return "paymentStatus.captions.completed";
   if (state === "current") return "paymentStatus.captions.inProgress";
   if (state === "failed") return "paymentStatus.captions.failed";
@@ -392,15 +392,27 @@ function formatElapsed(timing: PaymentStepTiming, now: number): string | null {
   return `${seconds}s`;
 }
 
+function getTimerBarColor(isUrgent: boolean, isWarning: boolean): string {
+  if (isUrgent) return "bg-red-500";
+  if (isWarning) return "bg-amber-400";
+  return "bg-stellar-400";
+}
+
+function getTimerTextColor(isUrgent: boolean, isWarning: boolean): string {
+  if (isUrgent) return "text-red-400";
+  if (isWarning) return "text-amber-300";
+  return "text-slate-400";
+}
+
 function CountdownTimer({
   startedAt,
   timeoutSeconds,
   now,
-}: {
-  startedAt: number | null;
-  timeoutSeconds: number;
-  now: number;
-}) {
+}: Readonly<{
+  readonly startedAt: number | null;
+  readonly timeoutSeconds: number;
+  readonly now: number;
+}>) {
   const { t } = useTranslation();
 
   if (!startedAt) return null;
@@ -419,24 +431,18 @@ function CountdownTimer({
     <div className="mt-3 flex items-center gap-3">
       <div className="flex-1 h-1.5 overflow-hidden rounded-full bg-white/5">
         <div
-          className={`h-full rounded-full transition-all duration-1000 ${
-            isUrgent
-              ? "bg-red-500"
-              : isWarning
-                ? "bg-amber-400"
-                : "bg-stellar-400"
-          }`}
+          className={`h-full rounded-full transition-all duration-1000 ${getTimerBarColor(
+            isUrgent,
+            isWarning
+          )}`}
           style={{ width: `${fraction * 100}%` }}
         />
       </div>
       <span
-        className={`text-xs font-medium whitespace-nowrap tabular-nums ${
-          isUrgent
-            ? "text-red-400"
-            : isWarning
-              ? "text-amber-300"
-              : "text-slate-400"
-        }`}
+        className={`text-xs font-medium whitespace-nowrap tabular-nums ${getTimerTextColor(
+          isUrgent,
+          isWarning
+        )}`}
       >
         {isUrgent
           ? t("paymentStatus.timer.secondsLeft", { seconds: remainingSeconds })
@@ -449,10 +455,10 @@ function CountdownTimer({
 function StepIcon({
   id,
   state,
-}: {
-  id: PaymentStepId;
-  state: "pending" | "current" | "complete" | "failed";
-}) {
+}: Readonly<{
+  readonly id: PaymentStepId;
+  readonly state: StepState;
+}>) {
   if (state === "complete") {
     return <CheckIcon className="h-5 w-5 text-emerald-400" />;
   }
@@ -471,78 +477,78 @@ function StepIcon({
   return <SparklesIcon className="h-4 w-4 text-slate-300" />;
 }
 
-function CheckIcon({ className }: { className?: string }) {
+function CheckIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
     </svg>
   );
 }
 
-function XIcon({ className }: { className?: string }) {
+function XIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="m6 6 12 12M18 6 6 18" />
     </svg>
   );
 }
 
-function Spinner({ className }: { className?: string }) {
+function Spinner({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={`${className ?? ""} animate-spin`} viewBox="0 0 24 24" fill="none">
+    <svg className={`${className ?? ""} animate-spin`} viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z" />
     </svg>
   );
 }
 
-function BuildIcon({ className }: { className?: string }) {
+function BuildIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="m14.25 6 3.75-3.75 3.75 3.75L18 9.75" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 7.5 6 15m0 0L3.75 17.25 6.75 20.25 9 18m-3-3 3 3" />
     </svg>
   );
 }
 
-function SignatureIcon({ className }: { className?: string }) {
+function SignatureIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 16.5c2.25-2.5 3.75-3.75 5.25-3.75 1.75 0 1.75 2.25 3.25 2.25 1.75 0 2.25-6 4.75-6 1.5 0 2 1 3 2.25" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 20.25h18" />
     </svg>
   );
 }
 
-function UploadIcon({ className }: { className?: string }) {
+function UploadIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V4.5m0 0 4.5 4.5M12 4.5 7.5 9" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75v1.5A2.25 2.25 0 0 0 6.75 19.5h10.5A2.25 2.25 0 0 0 19.5 17.25v-1.5" />
     </svg>
   );
 }
 
-function SparklesIcon({ className }: { className?: string }) {
+function SparklesIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.75 13.688 8.313 18.25 10l-4.563 1.688L12 16.25l-1.688-4.563L5.75 10l4.563-1.688L12 3.75Z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="m18.75 15 .563 1.688L21 17.25l-1.688.563L18.75 19.5l-.563-1.688L16.5 17.25l1.688-.563L18.75 15Z" />
     </svg>
   );
 }
 
-function PrinterIcon({ className }: { className?: string }) {
+function PrinterIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 9V3.75A1.75 1.75 0 018.5 2h7a1.75 1.75 0 011.75 1.75V9M7.5 18.75h9M5.25 9H18.75A2.25 2.25 0 0121 11.25v5.25a1.5 1.5 0 01-1.5 1.5h-2.25V15H6.75v3H4.5A1.5 1.5 0 013 16.5v-5.25A2.25 2.25 0 015.25 9z" />
     </svg>
   );
 }
 
-function ExternalLinkIcon({ className }: { className?: string }) {
+function ExternalLinkIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
     </svg>
   );

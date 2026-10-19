@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContactPickerModal from "../components/ContactPickerModal";
 import SendPaymentForm from "../components/SendPaymentForm";
@@ -163,6 +163,84 @@ describe("ContactPickerModal", () => {
 
     await user.click(screen.getByTestId("contact-picker-modal"));
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("closes on Escape key press", async () => {
+    const onClose = jest.fn();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={onClose} />);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves focus to the search input or close button on open", async () => {
+    jest.useFakeTimers();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    const searchInput = screen.getByTestId("contact-picker-search");
+    expect(searchInput).toHaveFocus();
+    jest.useRealTimers();
+  });
+
+  it("traps Tab key navigation inside the modal", async () => {
+    jest.useFakeTimers();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    const closeBtn = screen.getByTestId("contact-picker-close");
+    const emptyLink = screen.getByTestId("contact-picker-empty-link");
+
+    // Focus last element (emptyLink) and press Tab -> should wrap to first element (closeBtn)
+    emptyLink.focus();
+    expect(emptyLink).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(closeBtn).toHaveFocus();
+
+    // Focus first element (closeBtn) and press Shift+Tab -> should wrap to last element
+    closeBtn.focus();
+    expect(closeBtn).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(emptyLink).toHaveFocus();
+
+    jest.useRealTimers();
+  });
+
+  it("restores focus to trigger element on close", async () => {
+    const user = userEvent.setup();
+    function Wrapper() {
+      const [isOpen, setIsOpen] = React.useState(false);
+      return (
+        <div>
+          <button data-testid="open-picker-btn" onClick={() => setIsOpen(true)}>
+            Open Contacts
+          </button>
+          <ContactPickerModal
+            isOpen={isOpen}
+            onSelect={jest.fn()}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+      );
+    }
+
+    render(<Wrapper />);
+    const trigger = screen.getByTestId("open-picker-btn");
+    await user.click(trigger);
+    expect(screen.getByTestId("contact-picker-modal")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByTestId("contact-picker-modal")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
   });
 });
 
