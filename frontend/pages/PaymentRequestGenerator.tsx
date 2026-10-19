@@ -7,6 +7,7 @@ import { useTranslation } from "@/contexts/I18nContext";
 
 export default function PaymentRequestGenerator() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [destination, setDestination] = useState('');
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');

@@ -9,7 +9,6 @@ import Head from "next/head";
 import { useWallet } from "@/lib/useWallet";
 import { useTranslation } from "@/contexts/I18nContext";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { useTranslation } from "@/contexts/I18nContext";
 import { formatXLM } from "@/utils/intlFormatters";
 import { buildPaymentTransaction, submitTransaction, getXLMBalance, STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM } from "@/lib/stellar";
 
