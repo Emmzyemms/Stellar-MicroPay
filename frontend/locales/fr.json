@@ -1158,7 +1158,10 @@
     "empty": "Aucun paiement récurrent pour le moment. Crée une planification pour envoyer des XLM automatiquement.",
     "due": "Dû",
     "payNow": "Payer maintenant",
-    "deleteSchedule": "Supprimer la planification"
+    "deleteSchedule": "Supprimer la planification",
+    "nextRun": "Prochaine exécution",
+    "invalidRecipient": "Saisis une adresse de destinataire Stellar valide",
+    "invalidAmount": "Saisis un montant valide supérieur à zéro"
   },
   "contactPicker": {
     "ariaLabel": "Carnet d’adresses",

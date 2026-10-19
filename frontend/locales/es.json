@@ -1158,7 +1158,10 @@
     "empty": "Aún no hay pagos recurrentes. Crea una programación para enviar XLM automáticamente.",
     "due": "Vence",
     "payNow": "Pagar ahora",
-    "deleteSchedule": "Eliminar programación"
+    "deleteSchedule": "Eliminar programación",
+    "nextRun": "Próxima ejecución",
+    "invalidRecipient": "Introduce una dirección de destinatario de Stellar válida",
+    "invalidAmount": "Introduce un importe válido mayor que cero"
   },
   "contactPicker": {
     "ariaLabel": "Libreta de direcciones",

@@ -1158,7 +1158,10 @@
     "empty": "Noch keine wiederkehrenden Zahlungen. Erstelle einen Zeitplan, um XLM automatisch zu senden.",
     "due": "Fällig",
     "payNow": "Jetzt bezahlen",
-    "deleteSchedule": "Zeitplan löschen"
+    "deleteSchedule": "Zeitplan löschen",
+    "nextRun": "Nächster Lauf",
+    "invalidRecipient": "Gib eine gültige Stellar-Empfängeradresse ein",
+    "invalidAmount": "Gib einen gültigen Betrag größer als null ein"
   },
   "contactPicker": {
     "ariaLabel": "Adressbuch",
