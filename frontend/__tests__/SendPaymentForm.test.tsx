@@ -256,3 +256,35 @@ describe('SendPaymentForm SNS Resolution (#1197)', () => {
     expect(await screen.findByText('SNS name not found')).toBeInTheDocument();
   });
 });
+
+describe('SendPaymentForm - Accessible Icon Buttons (#1464)', () => {
+  const defaultProps = {
+    publicKey: 'GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3D5NZ2KMSUGSRNVO7ZFGIGSZ',
+    xlmBalance: '100.0000000',
+    usdcBalance: '50.0000000',
+    onSuccess: jest.fn(),
+  };
+
+  it('labels the favorite button and marks icon aria-hidden when a destination is entered', async () => {
+    render(<SendPaymentForm {...defaultProps} />);
+    const input = screen.getByPlaceholderText(/G\.\.\. or alice\.xlm/i);
+    fireEvent.change(input, { target: { value: 'GABCDE1234567890GABCDE1234567890GABCDE1234567890GABCDE12' } });
+
+    const favBtn = await screen.findByRole('button', { name: /add favourite/i });
+    expect(favBtn).toBeInTheDocument();
+    const icon = favBtn.querySelector('svg');
+    expect(icon).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('labels the split payment remove recipient button', async () => {
+    render(<SendPaymentForm {...defaultProps} />);
+    const splitToggle = screen.getByRole('button', { name: /split payment among multiple recipients/i });
+    fireEvent.click(splitToggle);
+
+    const addRecipientBtn = screen.getByRole('button', { name: /\+ add recipient/i });
+    fireEvent.click(addRecipientBtn);
+
+    const removeBtns = screen.getAllByRole('button', { name: /remove recipient/i });
+    expect(removeBtns.length).toBeGreaterThanOrEqual(1);
+  });
+});

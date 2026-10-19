@@ -5,7 +5,7 @@
 
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Transaction, TransactionBuilder } from "@stellar/stellar-sdk";
 import { getNetworkPassphrase } from "@/lib/stellar";
 import { signTransactionWithWallet } from "@/lib/wallet";
@@ -25,7 +25,7 @@ export default function MultiSigSignPage() {
     if (!xdr || typeof xdr !== "string") return;
 
     try {
-      const tx = TransactionBuilder.fromXDR(xdr, getNetworkPassphrase());
+      const tx = TransactionBuilder.fromXdr(xdr, getNetworkPassphrase());
       if (tx instanceof Transaction) {
         setTransaction(tx);
       } else {
@@ -33,17 +33,34 @@ export default function MultiSigSignPage() {
       }
       setStatus("ready");
     } catch (err) {
+      console.error("Failed to parse multi-sig transaction XDR:", err);
       setError(t("multiSigSign.invalidXdr"));
       setStatus("ready");
     }
   }, [xdr, t]);
+
+  const operations = useMemo(() => {
+    if (!transaction) return [];
+    return transaction.operations.map((op, i) => {
+      let id = `op-${i}-${op.type}`;
+      if (op.type === "payment") {
+        const payment = op as any;
+        id = `payment-${payment.destination || ""}-${payment.amount || ""}-${i}`;
+      }
+      return {
+        id,
+        op,
+        number: i + 1,
+      };
+    });
+  }, [transaction]);
 
   const handleSign = async () => {
     if (!transaction) return;
     setStatus("signing");
     setError(null);
     try {
-      const { signedXDR, error: signError } = await signTransactionWithWallet(transaction.toXDR());
+      const { signedXDR, error: signError } = await signTransactionWithWallet(transaction.toXdr());
       if (signError || !signedXDR) {
         setError(signError || t("multiSigSign.failedToSign"));
         setStatus("ready");
@@ -59,9 +76,14 @@ export default function MultiSigSignPage() {
 
   if (status === "loading") {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center">
-          <p className="text-slate-400">{t("multiSigSign.loading")}</p>
+      <>
+        <Head>
+          <title>{t("pages.multiSigSign.title")}</title>
+        </Head>
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <div className="text-center">
+            <p className="text-slate-400">{t("multiSigSign.loading")}</p>
+          </div>
         </div>
       </>
     );
@@ -95,11 +117,11 @@ export default function MultiSigSignPage() {
           <h2 className="font-display text-lg font-semibold text-white mb-4">{t("multiSigSign.detailsTitle")}</h2>
           <div className="space-y-2">
             <p><span className="text-slate-400">{t("multiSigSign.from")}</span> {transaction.source}</p>
-            {transaction.operations.map((op, i) => {
+            {operations.map(({ id, op, number }) => {
               if (op.type === "payment") {
                 const payment = op as any;
                 return (
-                  <div key={i}>
+                  <div key={id}>
                     <p><span className="text-slate-400">{t("multiSigSign.to")}</span> {payment.destination}</p>
                     <p>
                       <span className="text-slate-400">{t("multiSigSign.amount")}</span>{" "}
@@ -112,8 +134,8 @@ export default function MultiSigSignPage() {
                 );
               }
               return (
-                <p key={i}>
-                  {t("multiSigSign.operation", { number: i + 1, type: op.type })}
+                <p key={id}>
+                  {t("multiSigSign.operation", { number, type: op.type })}
                 </p>
               );
             })}

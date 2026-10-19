@@ -411,9 +411,9 @@ export default function Navbar({ onOpenAssistant }: NavbarProps) {
   }
 
 
-  function StarIcon({ className }: { className?: string }) {
+function StarIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path
         d="M12 2L14.09 8.26L21 9L15.5 14.14L17.18 21L12 17.77L6.82 21L8.5 14.14L3 9L9.91 8.26L12 2Z"
         fill="currentColor"
@@ -431,6 +431,7 @@ function MoonIcon() {
       viewBox="0 0 24 24"
       stroke="currentColor"
       strokeWidth={2}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -450,6 +451,7 @@ function SunIcon() {
       viewBox="0 0 24 24"
       stroke="currentColor"
       strokeWidth={2}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -469,6 +471,7 @@ function ClipboardIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       stroke="currentColor"
       strokeWidth={2}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -488,6 +491,7 @@ function CheckIcon({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       stroke="currentColor"
       strokeWidth={2}
+      aria-hidden="true"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>

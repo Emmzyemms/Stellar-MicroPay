@@ -292,7 +292,9 @@
     "splitPaymentToggle": "Zahlung auf mehrere Empfänger aufteilen",
     "totalPercentError": "Die Gesamtsumme muss 100% betragen (aktuell {percent}%)",
     "transactionSpeed": "Transaktionsgeschwindigkeit",
-    "useAddress": "Adresse verwenden"
+    "useAddress": "Adresse verwenden",
+    "copyTxHash": "Transaktions-Hash kopieren",
+    "removeRecipient": "Empfänger entfernen"
   },
   "walletHealth": {
     "healthy": "Dein Konto ist in gutem Zustand",
@@ -446,7 +448,7 @@
     "addressCopied": "Adresse kopiert",
     "importFailed": "Import fehlgeschlagen: fehlerhafte JSON-Datei"
   },
-"pwaUpdate": {
+  "pwaUpdate": {
     "available": "Eine neue Version ist verfügbar",
     "reload": "Neu laden"
   },
@@ -585,7 +587,7 @@
     "offlineActionDisabled": "Zahlungen und Handel sind im Offline-Modus deaktiviert",
     "offlineBanner": "Du bist offline — die Salden sind möglicherweise veraltet und Zahlungen sind deaktiviert"
   },
-"issueToken": {
+  "issueToken": {
     "amountIssued": "Ausgegebener Betrag",
     "amountToIssue": "Betrag an {asset} zum Ausgeben",
     "assetCode": "Asset-Code",
@@ -708,7 +710,7 @@
     "topSenders": "Top-Sender",
     "totalXlmTipped": "Insgesamt getippte XLM"
   },
-"network": {
+  "network": {
     "accountsUnit": "Konten",
     "activeAccounts": "Aktive Konten",
     "activeAccountsDetail": "Eindeutige Konten im Ledger {ledger}",
@@ -825,7 +827,7 @@
     "noPublicPage": "@{username} hat noch keine öffentliche Trinkgeld-Seite.",
     "notFoundTitle": "Creator nicht gefunden"
   },
-"paymentStatus": {
+  "paymentStatus": {
     "tracker": "Zahlungsverfolgung",
     "complete": "Abgeschlossen",
     "paymentFailed": "Zahlung fehlgeschlagen",
@@ -934,9 +936,10 @@
     "processing": "Wird verarbeitet...",
     "executeMarketOrder": "Marktorder ausführen",
     "placeBuyOrder": "Kauforder platzieren",
-    "placeSellOrder": "Verkaufsorder platzieren"
+    "placeSellOrder": "Verkaufsorder platzieren",
+    "swapAssets": "Assets tauschen"
   },
-"turrets": {
+  "turrets": {
     "connectWalletFirst": "Verbinde deine Wallet, um eine Automatisierung bereitzustellen.",
     "deploymentFailed": "Bereitstellung fehlgeschlagen.",
     "connectWalletToConfigure": "Verbinde deine Wallet, um Automatisierungen zu konfigurieren.",
@@ -1042,7 +1045,7 @@
     "submitting": "Wird eingereicht...",
     "submitTransaction": "Transaktion einreichen"
   },
-"receipts": {
+  "receipts": {
     "loading": "Belege werden geladen",
     "tryAgain": "Erneut versuchen",
     "empty": "Noch keine Belege geprägt.",
@@ -1061,7 +1064,8 @@
     "paymentUri": "Zahlungs-URI",
     "download": "PNG herunterladen",
     "downloadAria": "QR-Code als PNG herunterladen",
-    "instructions": "Scanne diesen QR-Code mit Freighter mobil oder einer beliebigen Stellar-Wallet, um Zahlungen zu empfangen."
+    "instructions": "Scanne diesen QR-Code mit Freighter mobil oder einer beliebigen Stellar-Wallet, um Zahlungen zu empfangen.",
+    "closeAria": "QR-Code-Dialog schließen"
   },
   "quickSend": {
     "dialogLabel": "Schnellzahlung senden",
@@ -1102,7 +1106,7 @@
     "sendTipSuccessTitle": "Trinkgeld an @{username} gesendet!",
     "sendTipSuccessMessage": "{amount} ist unterwegs."
   },
-"aiAssistant": {
+  "aiAssistant": {
     "unavailable": "Der KI-Assistent ist derzeit nicht verfügbar. Bitte fülle die Zahlungsdaten manuell aus.",
     "title": "KI-Zahlungsassistent",
     "closeAssistant": "Assistent schließen",
@@ -1168,7 +1172,11 @@
     "searchAria": "Kontakte durchsuchen",
     "emptyState": "Noch keine Kontakte gespeichert.",
     "goToContacts": "Zu den Kontakten",
-    "noResults": "Keine Kontakte passen zu „{query}“."
+    "noResults": "Keine Kontakte passen zu „{query}“.",
+    "listAria": "Kontaktliste",
+    "resultsCount": "{count} Kontakte verfügbar",
+    "resultsCountSingle": "{count} Kontakt verfügbar",
+    "selectedAnnouncement": "{name} ausgewählt"
   },
   "liveEvents": {
     "typeOpen": "Öffnen",
@@ -1191,7 +1199,7 @@
     "ledger": "Ledger Nr. {ledger}",
     "lastEvent": "Letztes Ereignis empfangen {time}"
   },
-"creatorTips": {
+  "creatorTips": {
     "loadError": "Trinkgelder konnten nicht geladen werden. Stelle sicher, dass du einen registrierten Benutzernamen hast.",
     "setupProfile": "Richte dein Creator-Profil ein",
     "registerPrompt": "Registriere einen Benutzernamen, um öffentliche Trinkgeld-Seiten zu aktivieren und empfangene Trinkgelder zu verfolgen.",
@@ -1315,7 +1323,8 @@
     "to": "an",
     "tryAgain": "Erneut versuchen",
     "viewOnStellarExpert": "Auf Stellar Expert ansehen",
-    "viewTxOnStellarExpert": "Transaktion auf Stellar Expert ansehen"
+    "viewTxOnStellarExpert": "Transaktion auf Stellar Expert ansehen",
+    "cancelEditNote": "Bearbeitung der Notiz abbrechen"
   },
   "ledgerErrors": {
     "deviceNotFound": {
