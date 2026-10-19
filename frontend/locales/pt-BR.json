@@ -1158,7 +1158,10 @@
     "empty": "Nenhum pagamento recorrente ainda. Crie um agendamento para enviar XLM automaticamente.",
     "due": "A vencer",
     "payNow": "Pagar agora",
-    "deleteSchedule": "Excluir agendamento"
+    "deleteSchedule": "Excluir agendamento",
+    "nextRun": "Próxima execução",
+    "invalidRecipient": "Insira um endereço de destinatário Stellar válido",
+    "invalidAmount": "Insira um valor válido maior que zero"
   },
   "contactPicker": {
     "ariaLabel": "Agenda de endereços",

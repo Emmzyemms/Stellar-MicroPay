@@ -1158,7 +1158,10 @@
     "empty": "لا توجد مدفوعات متكررة بعد. أنشئ جدولًا لإرسال XLM تلقائيًا.",
     "due": "مستحق",
     "payNow": "ادفع الآن",
-    "deleteSchedule": "حذف الجدول"
+    "deleteSchedule": "حذف الجدول",
+    "nextRun": "التشغيل القادم",
+    "invalidRecipient": "أدخل عنوان مستلم صالحًا على Stellar",
+    "invalidAmount": "أدخل مبلغًا صالحًا أكبر من صفر"
   },
   "contactPicker": {
     "ariaLabel": "دفتر العناوين",

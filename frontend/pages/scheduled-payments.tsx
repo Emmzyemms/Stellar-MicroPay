@@ -8,7 +8,6 @@ import Head from "next/head";
 import { useWallet } from "@/lib/useWallet";
 import { useTranslation } from "@/contexts/I18nContext";
 import WalletConnect from "@/components/WalletConnect";
-import { useTranslation } from "@/contexts/I18nContext";
 import { isValidStellarAddress, USDC_ISSUER } from "@/lib/stellar";
 import { shortenAddress } from "@/utils/format";
 import { formatDate } from "@/utils/intlFormatters";
