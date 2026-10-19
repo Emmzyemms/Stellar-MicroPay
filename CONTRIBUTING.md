@@ -147,13 +147,31 @@ git checkout -b feature/qr-code-payments
 
 ### Commit message style
 
-We use [Conventional Commits](https://www.conventionalcommits.org/):
+We use [Conventional Commits](https://www.conventionalcommits.org/), enforced locally by [commitlint](https://commitlint.js.org/) (`@commitlint/config-conventional`, configured in [`commitlint.config.js`](commitlint.config.js)) running on the `commit-msg` hook via [simple-git-hooks](https://github.com/toplenboren/simple-git-hooks). The hook is installed automatically by `npm install` (through the `prepare` script), and commits that don't follow the format are rejected.
+
+The format is `<type>(<optional scope>): <description>`:
 
 ```
 feat: add QR code payment generation
 fix: correct balance display on dashboard
+fix(payments): correct amount rounding
 docs: update API endpoint documentation
 chore: upgrade stellar-sdk to latest
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+
+Examples of what happens on commit:
+
+```bash
+git commit -m "fixed stuff"                  # ✗ rejected: type and subject may not be empty
+git commit -m "fix: correct amount rounding" # ✓ accepted
+```
+
+You can check a message without committing:
+
+```bash
+echo "fixed stuff" | npx commitlint
 ```
 
 ---
