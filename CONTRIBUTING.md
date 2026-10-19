@@ -113,6 +113,13 @@ cargo build --target wasm32-unknown-unknown --release
 
 We use [Lefthook](https://github.com/evilmartians/lefthook) to automatically run linting and type-checking on staged files before you commit. This ensures that only clean, well-formatted code makes it into the repository. When you install dependencies via `npm install`, lefthook is automatically configured via the `prepare` script.
 
+### VS Code Setup
+
+If you use VS Code, the repository ships shared workspace config in [`.vscode/`](.vscode):
+
+- [`.vscode/extensions.json`](.vscode/extensions.json) — VS Code prompts you to install the recommended extensions when you open the project: ESLint (`dbaeumer.vscode-eslint`), Prettier (`esbenp.prettier-vscode`), rust-analyzer (`rust-lang.rust-analyzer`), Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`) and Playwright (`ms-playwright.playwright`).
+- [`.vscode/settings.json`](.vscode/settings.json) — enables `editor.formatOnSave` and ESLint auto-fix on save (`source.fixAll.eslint`), so files are formatted and fixed consistently before you commit.
+
 ### Branch naming convention
 
 ```
