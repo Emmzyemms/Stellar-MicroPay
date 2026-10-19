@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import AIPaymentAssistant, { FloatingAssistantButton } from '../components/AIPaymentAssistant';
+import AIPaymentAssistant, { FloatingAssistantButton } from '@/components/AIPaymentAssistant';
 
 const mockOnClose = jest.fn();
 const mockOnConfirm = jest.fn();

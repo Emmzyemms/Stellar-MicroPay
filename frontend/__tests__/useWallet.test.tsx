@@ -17,12 +17,12 @@ import {
   TransportOpenUserCancelled,
   TransportStatusError,
 } from '@ledgerhq/errors';
-import { WalletProvider, useWallet, type SignResult } from '../lib/useWallet';
-import { I18nProvider } from '../contexts/I18nContext';
-import { LOCALE_STORAGE_KEY } from '../lib/i18n';
-import { classifyLedgerError, isRecoverableLedgerError } from '../lib/wallet';
-import en from '../locales/en.json';
-import es from '../locales/es.json';
+import { WalletProvider, useWallet, type SignResult } from '@/lib/useWallet';
+import { I18nProvider } from '@/contexts/I18nContext';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n';
+import { classifyLedgerError, isRecoverableLedgerError } from '@/lib/wallet';
+import en from '@/locales/en.json';
+import es from '@/locales/es.json';
 
 const mockGetConnectedPublicKey = jest.fn();
 const mockDisconnectWallet = jest.fn();

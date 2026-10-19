@@ -12,7 +12,7 @@ describe("stellar.ts SSR compatibility", () => {
     try {
       // This should not throw even though localStorage is undefined
       expect(() => {
-        require("../lib/stellar");
+        require("@/lib/stellar");
       }).not.toThrow();
     } finally {
       // Restore window
@@ -27,7 +27,7 @@ describe("stellar.ts SSR compatibility", () => {
     delete (global as any).window;
 
     try {
-      const { getNetworkConfig } = require("../lib/stellar");
+      const { getNetworkConfig } = require("@/lib/stellar");
       const config = getNetworkConfig();
       
       expect(config).toBeDefined();

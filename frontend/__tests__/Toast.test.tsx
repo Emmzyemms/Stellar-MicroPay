@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import Toast from '../components/Toast';
+import Toast from '@/components/Toast';
 
 describe('Toast snapshot tests', () => {
   beforeEach(() => {
