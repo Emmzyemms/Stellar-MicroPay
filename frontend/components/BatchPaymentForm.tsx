@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   buildPaymentTransaction,
+  CONTRACT_MAX_BATCH,
   isValidStellarAddress,
   STELLAR_MEMO_TEXT_MAX_BYTES,
   STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM,
@@ -16,7 +17,7 @@ import {
 import { useTranslation } from "@/contexts/I18nContext";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
-const MAX_RECIPIENTS = 100;
+const MAX_RECIPIENTS = CONTRACT_MAX_BATCH;
 
 type RecipientStatus = "idle" | "pending" | "success" | "failed";
 
@@ -324,6 +325,22 @@ export default function BatchPaymentForm({
         ))}
 
         <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-center">
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleAddRecipient}
+              disabled={isProcessing || recipients.length >= MAX_RECIPIENTS}
+              className="btn-secondary w-full py-2.5"
+            >
+              Add recipient
+            </button>
+            {recipients.length >= MAX_RECIPIENTS && (
+              <p className="text-xs text-slate-400">
+                Batch limit reached — a single batch sends to at most{" "}
+                {MAX_RECIPIENTS} recipients.
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={handleAddRecipient}

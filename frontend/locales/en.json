@@ -1162,7 +1162,10 @@
     "empty": "No recurring payments yet. Create a schedule to send XLM automatically.",
     "due": "Due",
     "payNow": "Pay Now",
-    "deleteSchedule": "Delete schedule"
+    "deleteSchedule": "Delete schedule",
+    "nextRun": "Next run",
+    "invalidRecipient": "Enter a valid Stellar recipient address",
+    "invalidAmount": "Enter a valid amount greater than zero"
   },
   "contactPicker": {
     "ariaLabel": "Address book",

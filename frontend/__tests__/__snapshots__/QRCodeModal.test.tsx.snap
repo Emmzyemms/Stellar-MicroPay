@@ -7,13 +7,18 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
+    aria-labelledby="qr-code-title"
+    aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
+    role="dialog"
+    tabindex="-1"
   >
     <div
       class="flex items-center justify-between mb-6"
     >
       <h3
         class="font-display text-xl font-semibold text-white"
+        id="qr-code-title"
       >
         Receive Payment QR Code
       </h3>
@@ -126,13 +131,18 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
+    aria-labelledby="qr-code-title"
+    aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
+    role="dialog"
+    tabindex="-1"
   >
     <div
       class="flex items-center justify-between mb-6"
     >
       <h3
         class="font-display text-xl font-semibold text-white"
+        id="qr-code-title"
       >
         Receive Payment QR Code
       </h3>
@@ -245,13 +255,18 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
+    aria-labelledby="qr-code-title"
+    aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
+    role="dialog"
+    tabindex="-1"
   >
     <div
       class="flex items-center justify-between mb-6"
     >
       <h3
         class="font-display text-xl font-semibold text-white"
+        id="qr-code-title"
       >
         Receive Payment QR Code
       </h3>
@@ -364,13 +379,18 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
+    aria-labelledby="qr-code-title"
+    aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
+    role="dialog"
+    tabindex="-1"
   >
     <div
       class="flex items-center justify-between mb-6"
     >
       <h3
         class="font-display text-xl font-semibold text-white"
+        id="qr-code-title"
       >
         Receive Payment QR Code
       </h3>
