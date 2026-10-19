@@ -113,7 +113,7 @@ import {
 } from "@/utils/intlFormatters";
 import { useToastContext } from "@/lib/ToastContext";
 import { useTranslation } from "@/contexts/I18nContext";
-import { getJwtToken } from "@/lib/auth";
+import { apiGet, apiPost, apiUrl } from "@/lib/paymentApi";
 import { URIParseResult, uriToPrefillData } from "@/lib/sep0007";
 import { useWallet } from "@/lib/useWallet";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -138,6 +138,8 @@ interface PaymentStats {
     volumeChangePercent: number;
   };
 }
+
+type TopRecipient = { address: string; totalXLMSent: string };
 
 type DashboardTabId = "overview" | "events";
 
@@ -393,7 +395,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   // Analytics state
   const [thirtyDayData, setThirtyDayData] = useState<any[]>([]);
   const [thirtyDayLoading, setThirtyDayLoading] = useState(false);
-  const [topRecipients, setTopRecipients] = useState<Array<{ address: string; totalXLMSent: string }>>([]);
+  const [topRecipients, setTopRecipients] = useState<TopRecipient[]>([]);
   const [topRecipientsLoading, setTopRecipientsLoading] = useState(false);
   const [csvExporting, setCsvExporting] = useState(false);
   const [balanceHistoryNow, setBalanceHistoryNow] = useState<number | null>(null);
@@ -536,17 +538,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   const fetchUsername = useCallback(async () => {
     if (!publicKey) return;
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
     try {
-      const response = await fetch(
-        `${apiBase}/api/accounts/resolve/${encodeURIComponent(publicKey)}`
+      const data = await apiGet<{ username?: string }>(
+        `/api/accounts/resolve/${encodeURIComponent(publicKey)}`
       );
-      if (response.ok) {
-        const payload = await response.json();
-        if (payload?.success && payload?.data?.username) {
-          setCreatorUsername(payload.data.username);
-        }
-      }
+      if (data?.username) setCreatorUsername(data.username);
     } catch (err) {
       console.error("Error fetching username:", err);
     }
@@ -638,48 +634,27 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
   const fetchPaymentStats = useCallback(async () => {
     if (!publicKey) return;
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-
     setPaymentStatsLoading(true);
     setPaymentStatsError(null);
 
     try {
-      const headers: HeadersInit = {};
-      const token = getJwtToken();
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       // The analytics summary only supplies optional comparison data — if it
       // fails (or its endpoint is unavailable) the core stats must still load.
-      const fetchSummary = async (): Promise<Response | null> => {
-        try {
-          return await fetch(`${apiBase}/api/analytics/${encodeURIComponent(publicKey)}/summary`, { headers });
-        } catch {
-          return null;
-        }
-      };
-
-      const [resStats, resSummary] = await Promise.all([
-        fetch(`${apiBase}/api/payments/${encodeURIComponent(publicKey)}/stats`, { headers }),
-        fetchSummary(),
+      const [dataStats, summary] = await Promise.all([
+        apiGet<PaymentStats>(
+          `/api/payments/${encodeURIComponent(publicKey)}/stats`,
+          {
+            auth: true,
+            fallbackMessage: "Unable to load payment stats right now.",
+          }
+        ),
+        apiGet<{ comparison?: PaymentStats["comparison"] }>(
+          `/api/analytics/${encodeURIComponent(publicKey)}/summary`,
+          { auth: true }
+        ).catch(() => null),
       ]);
 
-      if (!resStats.ok) {
-        throw new Error("Unable to load payment stats right now.");
-      }
-
-      const payloadStats = await resStats.json();
-      const dataStats = payloadStats?.data;
-
-      let comparisonData;
-      if (resSummary?.ok) {
-        const payloadSummary = await resSummary.json();
-        comparisonData = payloadSummary?.data?.comparison;
-      }
-
       if (
-        !payloadStats?.success ||
         !dataStats ||
         typeof dataStats.totalSentXLM !== "string" ||
         typeof dataStats.totalReceivedXLM !== "string" ||
@@ -695,7 +670,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
         sentCount: Number(dataStats.sentCount ?? 0),
         receivedCount: Number(dataStats.receivedCount ?? 0),
         totalTransactions: dataStats.totalTransactions,
-        comparison: comparisonData,
+        comparison: summary?.comparison,
       });
     } catch {
       setPaymentStats(null);
@@ -810,18 +785,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
     if (!publicKey) return;
     setTopRecipientsLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-      const headers: HeadersInit = {};
-      const token = getJwtToken();
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-      const res = await fetch(
-        `${apiBase}/api/analytics/${encodeURIComponent(publicKey)}/top-recipients`,
-        { headers }
+      const data = await apiGet<{ topRecipients?: TopRecipient[] }>(
+        `/api/analytics/${encodeURIComponent(publicKey)}/top-recipients`,
+        { auth: true }
       );
-      if (res.ok) {
-        const payload = await res.json();
-        setTopRecipients(payload?.data?.topRecipients ?? []);
-      }
+      setTopRecipients(data?.topRecipients ?? []);
     } catch (err) {
       console.error("Failed to fetch top recipients:", err);
     } finally {
@@ -1040,12 +1008,7 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
       }));
 
     // Step 4 — Send the subscription to your server so it can push messages later.
-    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
-    await fetch(`${apiBase}/api/push/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription, publicKey }),
-    }).catch((err) => {
+    await apiPost("/api/push/subscribe", { subscription, publicKey }).catch((err) => {
       // Non-fatal: subscription still works for same-session in-app notifications.
       console.warn('Could not register push subscription with server:', err);
     });
@@ -1140,8 +1103,11 @@ export default function Dashboard({ stellarURI }: DashboardProps) {
 
       stopPollingFallback();
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-      const streamUrl = `${apiBase}/api/analytics/${encodeURIComponent(publicKey)}/stream`;
+      // EventSource is not fetch, so the gateway cannot make the request — but
+      // the backend origin still comes from one place.
+      const streamUrl = apiUrl(
+        `/api/analytics/${encodeURIComponent(publicKey)}/stream`
+      );
 
       if (typeof window === "undefined" || !("EventSource" in window)) {
         startPollingFallback();

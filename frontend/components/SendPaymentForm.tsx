@@ -41,7 +41,7 @@ import {
 import { Asset, Federation } from "@stellar/stellar-sdk";
 import { parseHorizonSubmissionError } from "@/lib/horizonErrors";
 import { signTransactionWithWallet } from "@/lib/wallet";
-import { submitSignedPayment } from "@/lib/paymentApi";
+import { apiGet, submitSignedPayment } from "@/lib/paymentApi";
 import { resolveSNSDomain } from "@/utils/snsResolver";
 import {
   formatNumber,
@@ -548,16 +548,17 @@ export default function SendPaymentForm({
     setIsResolvingUsername(true);
     setUsernameResolutionError(null);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-      const response = await fetch(`${apiBase}/api/accounts/resolve/${encodeURIComponent(cleanUsername)}`);
-      if (!response.ok) throw new Error(t("sendPayment.usernameNotFound"));
-      const payload = await response.json();
-      if (payload?.success && payload?.data?.publicKey) {
-        setDestination(payload.data.publicKey);
-        setUsernameResolutionError(null);
-      } else {
+      const data = await apiGet<{ publicKey?: string }>(
+        `/api/accounts/resolve/${encodeURIComponent(cleanUsername)}`,
+        { fallbackMessage: t("sendPayment.usernameNotFound") }
+      );
+
+      if (!data?.publicKey) {
         throw new Error(t("sendPayment.usernameResolveFailed"));
       }
+
+      setDestination(data.publicKey);
+      setUsernameResolutionError(null);
     } catch (err) {
       setUsernameResolutionError(
         err instanceof Error ? err.message : t("sendPayment.usernameResolveFailed")
