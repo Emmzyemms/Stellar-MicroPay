@@ -65,6 +65,16 @@ escrows, with links to the files that implement them.
 
 ## 🏃 Running the Project Locally
 
+### Check Your Prerequisites
+
+Before running anything, verify your environment with the prerequisites script:
+
+```bash
+./scripts/check-prereqs.sh
+```
+
+It checks for Node.js >= 20, npm >= 10, Rust (stable), the `wasm32-unknown-unknown` target and `stellar-cli`, printing ✓ or ✗ for each with the installed and required versions. It exits non-zero if any check fails, so it can also be used in CI.
+
 ### Frontend
 
 ```bash
