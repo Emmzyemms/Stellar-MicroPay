@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/router";
 import { getNetworkConfig, setNetworkConfig, NetworkConfig } from "@/lib/stellar";
 import { apiDelete, apiGet, apiPost } from "@/lib/paymentApi";
 import { disconnectWallet } from "@/lib/wallet";
@@ -20,8 +21,19 @@ import {
   isLocale,
   type Locale,
 } from "@/lib/i18n";
+import {
+  SUPPORTED_FIAT_CURRENCIES,
+  getFiatCurrencyPreference,
+  setFiatCurrencyPreference,
+  type FiatCurrency,
+} from "@/lib/price";
 import WalletHealthPanel from "@/components/WalletHealthPanel";
 import LeaderboardPrivacyToggle from "@/components/LeaderboardPrivacyToggle";
+
+// Both panels are configuration-only features far down the settings page, so
+// they (and the payment/anchor code behind them) load on demand (#1442).
+const TurretsWizard = dynamic(() => import("@/components/TurretsWizard"), { ssr: false });
+const AnchorRamp = dynamic(() => import("@/components/AnchorRamp"), { ssr: false });
 
 export default function SettingsPage() {
   const router = useRouter();

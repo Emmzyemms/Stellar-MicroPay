@@ -3,6 +3,7 @@
  * Custom 404 page — matches the app's dark cosmos theme with stellar branding.
  */
 
+import Head from "next/head";
 import Link from "next/link";
 import { useTranslation } from "@/contexts/I18nContext";
 
