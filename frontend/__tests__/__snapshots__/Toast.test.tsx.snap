@@ -38,6 +38,7 @@ exports[`Toast snapshot tests renders visible error toast 1`] = `
     class="flex items-center gap-2"
   >
     <svg
+      aria-hidden="true"
       class="w-4 h-4"
       fill="none"
       stroke="currentColor"
@@ -79,6 +80,7 @@ exports[`Toast snapshot tests renders visible success toast 1`] = `
     class="flex items-center gap-2"
   >
     <svg
+      aria-hidden="true"
       class="w-4 h-4"
       fill="none"
       stroke="currentColor"

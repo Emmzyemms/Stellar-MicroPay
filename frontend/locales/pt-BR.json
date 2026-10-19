@@ -292,7 +292,9 @@
     "splitPaymentToggle": "Dividir pagamento entre vários destinatários",
     "totalPercentError": "A porcentagem total deve ser igual a 100% (atualmente {percent}%)",
     "transactionSpeed": "Velocidade da transação",
-    "useAddress": "Usar endereço"
+    "useAddress": "Usar endereço",
+    "copyTxHash": "Copiar hash da transação",
+    "removeRecipient": "Remover destinatário"
   },
   "walletHealth": {
     "healthy": "Sua conta está saudável",
@@ -934,7 +936,8 @@
     "processing": "Processando...",
     "executeMarketOrder": "Executar ordem a mercado",
     "placeBuyOrder": "Enviar ordem de compra",
-    "placeSellOrder": "Enviar ordem de venda"
+    "placeSellOrder": "Enviar ordem de venda",
+    "swapAssets": "Alternar ativos"
   },
   "turrets": {
     "connectWalletFirst": "Conecte sua carteira para implantar uma automação.",
@@ -1061,7 +1064,8 @@
     "paymentUri": "URI de pagamento",
     "download": "Baixar PNG",
     "downloadAria": "Baixar código QR como PNG",
-    "instructions": "Escaneie este código QR com o Freighter mobile ou qualquer carteira Stellar para receber pagamentos."
+    "instructions": "Escaneie este código QR com o Freighter mobile ou qualquer carteira Stellar para receber pagamentos.",
+    "closeAria": "Fechar diálogo do código QR"
   },
   "quickSend": {
     "dialogLabel": "Envio rápido de pagamento",
@@ -1171,7 +1175,11 @@
     "searchAria": "Buscar contatos",
     "emptyState": "Nenhum contato salvo ainda.",
     "goToContacts": "Ir para contatos",
-    "noResults": "Nenhum contato corresponde a “{query}”."
+    "noResults": "Nenhum contato corresponde a “{query}”.",
+    "listAria": "Lista de contatos",
+    "resultsCount": "{count} contatos disponíveis",
+    "resultsCountSingle": "{count} contato disponível",
+    "selectedAnnouncement": "{name} selecionado"
   },
   "liveEvents": {
     "typeOpen": "Abrir",
@@ -1318,7 +1326,8 @@
     "to": "para",
     "tryAgain": "Tentar novamente",
     "viewOnStellarExpert": "Ver na Stellar Expert",
-    "viewTxOnStellarExpert": "Ver transação na Stellar Expert"
+    "viewTxOnStellarExpert": "Ver transação na Stellar Expert",
+    "cancelEditNote": "Cancelar edição da nota"
   },
   "ledgerErrors": {
     "deviceNotFound": {

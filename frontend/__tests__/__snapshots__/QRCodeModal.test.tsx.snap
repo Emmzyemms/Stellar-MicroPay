@@ -23,9 +23,11 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
         Receive Payment QR Code
       </h3>
       <button
+        aria-label="Close QR code dialog"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
+          aria-hidden="true"
           class="w-5 h-5"
           fill="none"
           stroke="currentColor"
@@ -90,6 +92,7 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
         class="flex-1 bg-stellar-500 hover:bg-stellar-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         <svg
+          aria-hidden="true"
           class="w-4 h-4"
           fill="none"
           stroke="currentColor"
@@ -144,9 +147,11 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
         Receive Payment QR Code
       </h3>
       <button
+        aria-label="Close QR code dialog"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
+          aria-hidden="true"
           class="w-5 h-5"
           fill="none"
           stroke="currentColor"
@@ -211,6 +216,7 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
         class="flex-1 bg-stellar-500 hover:bg-stellar-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         <svg
+          aria-hidden="true"
           class="w-4 h-4"
           fill="none"
           stroke="currentColor"
@@ -265,9 +271,11 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
         Receive Payment QR Code
       </h3>
       <button
+        aria-label="Close QR code dialog"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
+          aria-hidden="true"
           class="w-5 h-5"
           fill="none"
           stroke="currentColor"
@@ -332,6 +340,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
         class="flex-1 bg-stellar-500 hover:bg-stellar-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         <svg
+          aria-hidden="true"
           class="w-4 h-4"
           fill="none"
           stroke="currentColor"
@@ -386,9 +395,11 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
         Receive Payment QR Code
       </h3>
       <button
+        aria-label="Close QR code dialog"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
+          aria-hidden="true"
           class="w-5 h-5"
           fill="none"
           stroke="currentColor"
@@ -453,6 +464,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
         class="flex-1 bg-stellar-500 hover:bg-stellar-600 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         <svg
+          aria-hidden="true"
           class="w-4 h-4"
           fill="none"
           stroke="currentColor"
