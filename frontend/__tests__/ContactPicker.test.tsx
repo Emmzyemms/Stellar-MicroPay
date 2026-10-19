@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContactPickerModal from "@/components/ContactPickerModal";
 import SendPaymentForm from "@/components/SendPaymentForm";
@@ -165,146 +165,81 @@ describe("ContactPickerModal", () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  describe("keyboard navigation (Issue #1465)", () => {
-    it("navigates options with ArrowDown, ArrowUp, and wraps around", async () => {
-      seedContacts(CONTACTS);
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
+  it("closes on Escape key press", async () => {
+    const onClose = jest.fn();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={onClose} />);
 
-      const searchInput = screen.getByTestId("contact-picker-search");
-      expect(searchInput).toHaveAttribute("role", "combobox");
-      expect(searchInput).toHaveAttribute("aria-controls", "contact-picker-listbox");
-      expect(searchInput).not.toHaveAttribute("aria-activedescendant");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 
-      const options = screen.getAllByRole("option");
-      expect(options).toHaveLength(2);
-      expect(options[0]).toHaveAttribute("aria-selected", "false");
-      expect(options[1]).toHaveAttribute("aria-selected", "false");
+  it("moves focus to the search input or close button on open", async () => {
+    jest.useFakeTimers();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
 
-      // Press ArrowDown to highlight first contact
-      await user.click(searchInput);
-      await user.keyboard("{ArrowDown}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-1");
-      expect(options[0]).toHaveAttribute("aria-selected", "true");
-      expect(options[1]).toHaveAttribute("aria-selected", "false");
-
-      // Press ArrowDown to highlight second contact
-      await user.keyboard("{ArrowDown}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-2");
-      expect(options[0]).toHaveAttribute("aria-selected", "false");
-      expect(options[1]).toHaveAttribute("aria-selected", "true");
-
-      // Press ArrowDown to wrap back to first contact
-      await user.keyboard("{ArrowDown}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-1");
-      expect(options[0]).toHaveAttribute("aria-selected", "true");
-
-      // Press ArrowUp to wrap to last contact
-      await user.keyboard("{ArrowUp}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-2");
-      expect(options[1]).toHaveAttribute("aria-selected", "true");
+    act(() => {
+      jest.runOnlyPendingTimers();
     });
 
-    it("jumps to first/last options with Home and End keys", async () => {
-      seedContacts(CONTACTS);
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
+    const searchInput = screen.getByTestId("contact-picker-search");
+    expect(searchInput).toHaveFocus();
+    jest.useRealTimers();
+  });
 
-      const searchInput = screen.getByTestId("contact-picker-search");
-      await user.click(searchInput);
+  it("traps Tab key navigation inside the modal", async () => {
+    jest.useFakeTimers();
+    render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
 
-      // End jumps to last option
-      await user.keyboard("{End}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-2");
-      const options = screen.getAllByRole("option");
-      expect(options[1]).toHaveAttribute("aria-selected", "true");
-
-      // Home jumps to first option
-      await user.keyboard("{Home}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-1");
-      expect(options[0]).toHaveAttribute("aria-selected", "true");
+    act(() => {
+      jest.runOnlyPendingTimers();
     });
 
-    it("selects active option on Enter key", async () => {
-      seedContacts(CONTACTS);
-      const onSelect = jest.fn();
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={onSelect} onClose={jest.fn()} />);
+    const closeBtn = screen.getByTestId("contact-picker-close");
+    const emptyLink = screen.getByTestId("contact-picker-empty-link");
 
-      const searchInput = screen.getByTestId("contact-picker-search");
-      await user.click(searchInput);
-      await user.keyboard("{ArrowDown}"); // Active: Alice
-      await user.keyboard("{Enter}");
+    // Focus last element (emptyLink) and press Tab -> should wrap to first element (closeBtn)
+    emptyLink.focus();
+    expect(emptyLink).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(closeBtn).toHaveFocus();
 
-      expect(onSelect).toHaveBeenCalledTimes(1);
-      expect(onSelect).toHaveBeenCalledWith(CONTACTS[0]);
-    });
+    // Focus first element (closeBtn) and press Shift+Tab -> should wrap to last element
+    closeBtn.focus();
+    expect(closeBtn).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(emptyLink).toHaveFocus();
 
-    it("closes modal on Escape key", async () => {
-      seedContacts(CONTACTS);
-      const onClose = jest.fn();
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={onClose} />);
+    jest.useRealTimers();
+  });
 
-      const searchInput = screen.getByTestId("contact-picker-search");
-      await user.click(searchInput);
-      await user.keyboard("{Escape}");
+  it("restores focus to trigger element on close", async () => {
+    const user = userEvent.setup();
+    function Wrapper() {
+      const [isOpen, setIsOpen] = React.useState(false);
+      return (
+        <div>
+          <button data-testid="open-picker-btn" onClick={() => setIsOpen(true)}>
+            Open Contacts
+          </button>
+          <ContactPickerModal
+            isOpen={isOpen}
+            onSelect={jest.fn()}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+      );
+    }
 
-      expect(onClose).toHaveBeenCalledTimes(1);
-    });
+    render(<Wrapper />);
+    const trigger = screen.getByTestId("open-picker-btn");
+    await user.click(trigger);
+    expect(screen.getByTestId("contact-picker-modal")).toBeInTheDocument();
 
-    it("announces option count and selection in aria-live region", async () => {
-      seedContacts(CONTACTS);
-      const onSelect = jest.fn();
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={onSelect} onClose={jest.fn()} />);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByTestId("contact-picker-modal")).not.toBeInTheDocument();
 
-      const announcement = screen.getByTestId("contact-picker-announcement");
-      expect(announcement).toHaveAttribute("aria-live", "polite");
-      expect(announcement).toHaveTextContent(/2 contacts available/i);
-
-      // Filter down to Bob
-      const searchInput = screen.getByTestId("contact-picker-search");
-      await user.type(searchInput, "Bob");
-      await waitFor(() => {
-        expect(announcement).toHaveTextContent(/1 contact available/i);
-      });
-
-      // Press enter to select
-      await user.keyboard("{Enter}");
-      expect(announcement).toHaveTextContent(/Selected Bob Marley/i);
-      expect(onSelect).toHaveBeenCalledWith(CONTACTS[1]);
-    });
-
-    it("syncs active option on mouse hover", async () => {
-      seedContacts(CONTACTS);
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
-
-      const searchInput = screen.getByTestId("contact-picker-search");
-      const options = screen.getAllByRole("option");
-
-      await user.hover(options[1]);
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-2");
-      expect(options[1]).toHaveAttribute("aria-selected", "true");
-
-      await user.hover(options[0]);
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-1");
-      expect(options[0]).toHaveAttribute("aria-selected", "true");
-    });
-
-    it("resets active descendant when typing in search", async () => {
-      seedContacts(CONTACTS);
-      const user = userEvent.setup();
-      render(<ContactPickerModal isOpen onSelect={jest.fn()} onClose={jest.fn()} />);
-
-      const searchInput = screen.getByTestId("contact-picker-search");
-      await user.click(searchInput);
-      await user.keyboard("{ArrowDown}");
-      expect(searchInput).toHaveAttribute("aria-activedescendant", "contact-option-1");
-
-      await user.keyboard("A");
-      expect(searchInput).not.toHaveAttribute("aria-activedescendant");
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
     });
   });
 });

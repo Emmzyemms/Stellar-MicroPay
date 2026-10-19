@@ -17,16 +17,16 @@ import { shortenAddress } from "@/lib/stellar";
 import { useTranslation } from "@/contexts/I18nContext";
 
 interface ContactPickerModalProps {
-  isOpen: boolean;
-  onSelect: (contact: Contact) => void;
-  onClose: () => void;
+  readonly isOpen: boolean;
+  readonly onSelect: (contact: Contact) => void;
+  readonly onClose: () => void;
 }
 
 export default function ContactPickerModal({
   isOpen,
   onSelect,
   onClose,
-}: ContactPickerModalProps) {
+}: Readonly<ContactPickerModalProps>) {
   const { t } = useTranslation();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [query, setQuery] = useState("");
@@ -124,6 +124,7 @@ export default function ContactPickerModal({
   };
 
   if (!isOpen) return null;
+
 
   return (
     <Modal
@@ -247,7 +248,7 @@ export default function ContactPickerModal({
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
-function CloseIcon({ className }: { className?: string }) {
+function CloseIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -255,7 +256,7 @@ function CloseIcon({ className }: { className?: string }) {
   );
 }
 
-function ContactsIcon({ className }: { className?: string }) {
+function ContactsIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -263,7 +264,7 @@ function ContactsIcon({ className }: { className?: string }) {
   );
 }
 
-function ArrowRightIcon({ className }: { className?: string }) {
+function ArrowRightIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

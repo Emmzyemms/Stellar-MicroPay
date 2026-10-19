@@ -3,26 +3,26 @@
  * Modal component for displaying QR code with Stellar payment URI (SEP-0007).
  */
 
-import { useState, useRef } from "react";
-import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
+import { useRef } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import Modal from "@/components/Modal";
 import { useTranslation } from "@/contexts/I18nContext";
 
 interface QRCodeModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  publicKey: string;
-  amount?: string;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly publicKey: string;
+  readonly amount?: string;
 }
 
-export default function QRCodeModal({ isOpen, onClose, publicKey, amount }: QRCodeModalProps) {
+export default function QRCodeModal({ isOpen, onClose, publicKey, amount }: Readonly<QRCodeModalProps>) {
   const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Generate SEP-0007 URI format: web+stellar:pay?destination=G...[&amount=X]
   const generateStellarURI = () => {
     const baseURI = `web+stellar:pay?destination=${publicKey}`;
-    if (amount && parseFloat(amount) > 0) {
+    if (amount && Number.parseFloat(amount) > 0) {
       return `${baseURI}&amount=${amount}`;
     }
     return baseURI;
@@ -43,7 +43,7 @@ export default function QRCodeModal({ isOpen, onClose, publicKey, amount }: QRCo
       link.href = url;
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      link.remove();
       URL.revokeObjectURL(url);
     }, "image/png");
   };
@@ -56,16 +56,16 @@ export default function QRCodeModal({ isOpen, onClose, publicKey, amount }: QRCo
       onClose={onClose}
       overlayClassName="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       panelClassName="card max-w-md w-full animate-slide-up"
-      labelledBy="qr-code-title"
+      labelledBy="qr-code-modal-title"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 id="qr-code-title" className="font-display text-xl font-semibold text-white">
+        <h3 id="qr-code-modal-title" className="font-display text-xl font-semibold text-white">
           {t("qrCode.title")}
         </h3>
         <button
           onClick={onClose}
-          aria-label={t("qrCode.closeAria")}
+          aria-label={t("common.close")}
           className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
         >
           <CloseIcon className="w-5 h-5" />
@@ -131,7 +131,7 @@ export default function QRCodeModal({ isOpen, onClose, publicKey, amount }: QRCo
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
 
-function CloseIcon({ className }: { className?: string }) {
+function CloseIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -139,7 +139,7 @@ function CloseIcon({ className }: { className?: string }) {
   );
 }
 
-function DownloadIcon({ className }: { className?: string }) {
+function DownloadIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

@@ -33,7 +33,8 @@ export default function MultiSigSignPage() {
       }
       setStatus("ready");
     } catch (err) {
-      console.error("Failed to parse multi-sig transaction XDR:", err);
+      // In case of invalid base64 or corrupt transaction XDR
+      console.warn("Invalid multi-sig XDR provided:", err);
       setError(t("multiSigSign.invalidXdr"));
       setStatus("ready");
     }
@@ -73,6 +74,15 @@ export default function MultiSigSignPage() {
       setStatus("ready");
     }
   };
+
+  const operationsWithIds = useMemo(() => {
+    if (!transaction) return [];
+    return transaction.operations.map((op, index) => ({
+      id: `op-${index}-${op.type}`,
+      op,
+      index,
+    }));
+  }, [transaction]);
 
   if (status === "loading") {
     return (
@@ -117,7 +127,7 @@ export default function MultiSigSignPage() {
           <h2 className="font-display text-lg font-semibold text-white mb-4">{t("multiSigSign.detailsTitle")}</h2>
           <div className="space-y-2">
             <p><span className="text-slate-400">{t("multiSigSign.from")}</span> {transaction.source}</p>
-            {operations.map(({ id, op, number }) => {
+            {operationsWithIds.map(({ id, op, index }) => {
               if (op.type === "payment") {
                 const payment = op as any;
                 return (
@@ -135,7 +145,7 @@ export default function MultiSigSignPage() {
               }
               return (
                 <p key={id}>
-                  {t("multiSigSign.operation", { number, type: op.type })}
+                  {t("multiSigSign.operation", { number: index + 1, type: op.type })}
                 </p>
               );
             })}

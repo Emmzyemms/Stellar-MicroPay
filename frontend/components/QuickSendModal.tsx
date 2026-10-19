@@ -10,11 +10,11 @@ import SendPaymentForm from "@/components/SendPaymentForm";
 import { useTranslation } from "@/contexts/I18nContext";
 
 interface QuickSendModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  publicKey: string;
-  xlmBalance: string;
-  usdcBalance?: string | null;
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly publicKey: string;
+  readonly xlmBalance: string;
+  readonly usdcBalance?: string | null;
 }
 
 export default function QuickSendModal({
@@ -23,9 +23,8 @@ export default function QuickSendModal({
   publicKey,
   xlmBalance,
   usdcBalance,
-}: QuickSendModalProps) {
+}: Readonly<QuickSendModalProps>) {
   const { t } = useTranslation();
-
   return (
     <Modal
       isOpen={isOpen}
@@ -58,7 +57,7 @@ export default function QuickSendModal({
   );
 }
 
-function XIcon({ className }: { className?: string }) {
+function XIcon({ className }: Readonly<{ readonly className?: string }>) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

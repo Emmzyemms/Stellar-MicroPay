@@ -7,7 +7,7 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
-    aria-labelledby="qr-code-title"
+    aria-labelledby="qr-code-modal-title"
     aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
     role="dialog"
@@ -18,12 +18,12 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
     >
       <h3
         class="font-display text-xl font-semibold text-white"
-        id="qr-code-title"
+        id="qr-code-modal-title"
       >
         Receive Payment QR Code
       </h3>
       <button
-        aria-label="Close QR code dialog"
+        aria-label="Close"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
@@ -131,7 +131,7 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
-    aria-labelledby="qr-code-title"
+    aria-labelledby="qr-code-modal-title"
     aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
     role="dialog"
@@ -142,12 +142,12 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
     >
       <h3
         class="font-display text-xl font-semibold text-white"
-        id="qr-code-title"
+        id="qr-code-modal-title"
       >
         Receive Payment QR Code
       </h3>
       <button
-        aria-label="Close QR code dialog"
+        aria-label="Close"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
@@ -255,7 +255,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
-    aria-labelledby="qr-code-title"
+    aria-labelledby="qr-code-modal-title"
     aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
     role="dialog"
@@ -266,12 +266,12 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
     >
       <h3
         class="font-display text-xl font-semibold text-white"
-        id="qr-code-title"
+        id="qr-code-modal-title"
       >
         Receive Payment QR Code
       </h3>
       <button
-        aria-label="Close QR code dialog"
+        aria-label="Close"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg
@@ -379,7 +379,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
   class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
 >
   <div
-    aria-labelledby="qr-code-title"
+    aria-labelledby="qr-code-modal-title"
     aria-modal="true"
     class="card max-w-md w-full animate-slide-up"
     role="dialog"
@@ -390,12 +390,12 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
     >
       <h3
         class="font-display text-xl font-semibold text-white"
-        id="qr-code-title"
+        id="qr-code-modal-title"
       >
         Receive Payment QR Code
       </h3>
       <button
-        aria-label="Close QR code dialog"
+        aria-label="Close"
         class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/5"
       >
         <svg

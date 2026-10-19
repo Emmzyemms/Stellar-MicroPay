@@ -1,7 +1,7 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import PaymentStatusModal, { PaymentFlowStatus, PaymentStepId, PaymentStepTiming } from '@/components/PaymentStatusModal';
+import PaymentStatusModal, { PaymentFlowStatus, PaymentStepId, PaymentStepTiming } from '../components/PaymentStatusModal';
 
 const createStepTimings = (overrides: Partial<Record<PaymentStepId, PaymentStepTiming>> = {}): Record<PaymentStepId, PaymentStepTiming> => {
   const defaultTiming: PaymentStepTiming = { startedAt: null, completedAt: null, error: null };
@@ -175,5 +175,137 @@ describe('PaymentStatusModal snapshot tests', () => {
       />
     );
     expect(container.firstChild).toMatchSnapshot();
+  });
+});
+
+describe("PaymentStatusModal keyboard behavior & accessibility", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const defaultProps = {
+    isOpen: true,
+    onClose: jest.fn(),
+    status: "success" as PaymentFlowStatus,
+    txHash: "abc123def456",
+    error: null,
+    failedStep: null,
+    stepTimings: createStepTimings(),
+    explorerHref: "https://stellar.expert/explorer/public/tx/abc123def456",
+    timeoutSeconds: 60,
+  };
+
+  it("has role='dialog', aria-modal='true', and aria-labelledby", () => {
+    render(<PaymentStatusModal {...defaultProps} />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAttribute("aria-labelledby", "payment-status-title");
+  });
+
+  it("moves focus to the close button in terminal success state", async () => {
+    render(<PaymentStatusModal {...defaultProps} />);
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    expect(closeBtn).toHaveFocus();
+  });
+
+  it("focuses dialog container in non-terminal pending state with no action buttons", async () => {
+    render(
+      <PaymentStatusModal
+        {...defaultProps}
+        status="building"
+        txHash={null}
+        explorerHref={null}
+      />
+    );
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveFocus();
+  });
+
+  it("closes on Escape key press in both terminal and pending states", () => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <PaymentStatusModal {...defaultProps} status="building" onClose={onClose} />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <PaymentStatusModal {...defaultProps} status="success" onClose={onClose} />
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it("traps Tab key navigation inside modal in success state", () => {
+    render(<PaymentStatusModal {...defaultProps} />);
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    const closeBtn = screen.getByRole("button", { name: /close/i });
+    const printBtn = screen.getByRole("button", { name: /print receipt/i });
+
+    // Focus last interactive element (printBtn) and press Tab -> cycles to first
+    printBtn.focus();
+    expect(printBtn).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(closeBtn).toHaveFocus();
+
+    // Focus first element and press Shift+Tab -> cycles to last
+    closeBtn.focus();
+    expect(closeBtn).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Tab", shiftKey: true });
+    expect(printBtn).toHaveFocus();
+  });
+
+  it("restores focus to trigger element on close", async () => {
+    function Wrapper() {
+      const [isOpen, setIsOpen] = React.useState(false);
+      return (
+        <div>
+          <button data-testid="open-payment-modal-btn" onClick={() => setIsOpen(true)}>
+            Open Payment Modal
+          </button>
+          <PaymentStatusModal
+            {...defaultProps}
+            isOpen={isOpen}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+      );
+    }
+
+    const { getByTestId, queryByRole, getByRole } = render(<Wrapper />);
+    const trigger = getByTestId("open-payment-modal-btn");
+    trigger.focus();
+    expect(trigger).toHaveFocus();
+
+    fireEvent.click(trigger);
+    expect(getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(queryByRole("dialog")).not.toBeInTheDocument();
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(trigger).toHaveFocus();
   });
 });

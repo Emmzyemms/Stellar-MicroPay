@@ -39,6 +39,23 @@ function listFocusable(container: HTMLElement): HTMLElement[] {
  */
 let scrollLocks = 0;
 let overflowBeforeLock = "";
+let lastFocusOutsideModal: HTMLElement | null = null;
+
+if (typeof document !== "undefined") {
+  const recordFocus = (e: Event) => {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      target !== document.body &&
+      (!target.closest || !target.closest('[role="dialog"]'))
+    ) {
+      lastFocusOutsideModal = target;
+    }
+  };
+
+  document.addEventListener("focusin", recordFocus, true);
+  document.addEventListener("focus", recordFocus, true);
+}
 
 export interface ModalProps {
   isOpen: boolean;
@@ -116,9 +133,12 @@ export default function Modal({
     if (!isOpen) return;
 
     const panel = panelRef.current;
-    const invoker = document.activeElement as HTMLElement | null;
+    let invoker = document.activeElement as HTMLElement | null;
+    if (!invoker || invoker === document.body || (panel && panel.contains(invoker))) {
+      invoker = lastFocusOutsideModal;
+    }
 
-    if (panel && (!invoker || !panel.contains(invoker))) {
+    if (panel && (!document.activeElement || !panel.contains(document.activeElement))) {
       const focusables = listFocusable(panel);
       (focusables[0] ?? panel).focus();
     }
@@ -162,8 +182,8 @@ export default function Modal({
       }
     };
 
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, trapFocus]);
 
   if (!isOpen) return null;
