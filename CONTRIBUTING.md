@@ -65,6 +65,16 @@ escrows, with links to the files that implement them.
 
 ## 🏃 Running the Project Locally
 
+### Check Your Prerequisites
+
+Before running anything, verify your environment with the prerequisites script:
+
+```bash
+./scripts/check-prereqs.sh
+```
+
+It checks for Node.js >= 20, npm >= 10, Rust (stable), the `wasm32-unknown-unknown` target and `stellar-cli`, printing ✓ or ✗ for each with the installed and required versions. It exits non-zero if any check fails, so it can also be used in CI.
+
 ### Frontend
 
 ```bash
@@ -113,6 +123,13 @@ cargo build --target wasm32-unknown-unknown --release
 
 We use [Lefthook](https://github.com/evilmartians/lefthook) to automatically run linting and type-checking on staged files before you commit. This ensures that only clean, well-formatted code makes it into the repository. When you install dependencies via `npm install`, lefthook is automatically configured via the `prepare` script.
 
+### VS Code Setup
+
+If you use VS Code, the repository ships shared workspace config in [`.vscode/`](.vscode):
+
+- [`.vscode/extensions.json`](.vscode/extensions.json) — VS Code prompts you to install the recommended extensions when you open the project: ESLint (`dbaeumer.vscode-eslint`), Prettier (`esbenp.prettier-vscode`), rust-analyzer (`rust-lang.rust-analyzer`), Tailwind CSS IntelliSense (`bradlc.vscode-tailwindcss`) and Playwright (`ms-playwright.playwright`).
+- [`.vscode/settings.json`](.vscode/settings.json) — enables `editor.formatOnSave` and ESLint auto-fix on save (`source.fixAll.eslint`), so files are formatted and fixed consistently before you commit.
+
 ### Branch naming convention
 
 ```
@@ -130,13 +147,31 @@ git checkout -b feature/qr-code-payments
 
 ### Commit message style
 
-We use [Conventional Commits](https://www.conventionalcommits.org/):
+We use [Conventional Commits](https://www.conventionalcommits.org/), enforced locally by [commitlint](https://commitlint.js.org/) (`@commitlint/config-conventional`, configured in [`commitlint.config.js`](commitlint.config.js)) running on the `commit-msg` hook via [simple-git-hooks](https://github.com/toplenboren/simple-git-hooks). The hook is installed automatically by `npm install` (through the `prepare` script), and commits that don't follow the format are rejected.
+
+The format is `<type>(<optional scope>): <description>`:
 
 ```
 feat: add QR code payment generation
 fix: correct balance display on dashboard
+fix(payments): correct amount rounding
 docs: update API endpoint documentation
 chore: upgrade stellar-sdk to latest
+```
+
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+
+Examples of what happens on commit:
+
+```bash
+git commit -m "fixed stuff"                  # ✗ rejected: type and subject may not be empty
+git commit -m "fix: correct amount rounding" # ✓ accepted
+```
+
+You can check a message without committing:
+
+```bash
+echo "fixed stuff" | npx commitlint
 ```
 
 ---

@@ -292,7 +292,9 @@
     "splitPaymentToggle": "تقسيم الدفع بين عدة مستلمين",
     "totalPercentError": "يجب أن تكون النسبة الإجمالية 100% (حاليًا {percent}%)",
     "transactionSpeed": "سرعة المعاملة",
-    "useAddress": "استخدام العنوان"
+    "useAddress": "استخدام العنوان",
+    "copyTxHash": "نسخ تجزئة المعاملة",
+    "removeRecipient": "إزالة المستلم"
   },
   "walletHealth": {
     "healthy": "حسابك في حالة جيدة",
@@ -934,7 +936,8 @@
     "processing": "جارٍ المعالجة...",
     "executeMarketOrder": "تنفيذ أمر السوق",
     "placeBuyOrder": "تقديم أمر شراء",
-    "placeSellOrder": "تقديم أمر بيع"
+    "placeSellOrder": "تقديم أمر بيع",
+    "swapAssets": "تبديل الأصول"
   },
   "turrets": {
     "connectWalletFirst": "اربط محفظتك لنشر أتمتة.",
@@ -1061,7 +1064,8 @@
     "paymentUri": "عنوان URI للدفع",
     "download": "تنزيل PNG",
     "downloadAria": "تنزيل رمز QR كملف PNG",
-    "instructions": "امسح رمز QR هذا باستخدام Freighter للجوال أو أي محفظة Stellar لاستلام المدفوعات."
+    "instructions": "امسح رمز QR هذا باستخدام Freighter للجوال أو أي محفظة Stellar لاستلام المدفوعات.",
+    "closeAria": "إغلاق نافذة رمز الاستجابة السريعة"
   },
   "quickSend": {
     "dialogLabel": "إرسال دفعة سريع",
@@ -1171,7 +1175,11 @@
     "searchAria": "البحث في جهات الاتصال",
     "emptyState": "لا توجد جهات اتصال محفوظة بعد.",
     "goToContacts": "الانتقال إلى جهات الاتصال",
-    "noResults": "لا توجد جهات اتصال تطابق “{query}”."
+    "noResults": "لا توجد جهات اتصال تطابق “{query}”.",
+    "listAria": "قائمة جهات الاتصال",
+    "resultsCount": "{count} جهات اتصال متاحة",
+    "resultsCountSingle": "جهة اتصال واحدة متاحة",
+    "selectedAnnouncement": "تم تحديد {name}"
   },
   "liveEvents": {
     "typeOpen": "فتح",
@@ -1318,7 +1326,8 @@
     "to": "إلى",
     "tryAgain": "حاول مرة أخرى",
     "viewOnStellarExpert": "عرض على Stellar Expert",
-    "viewTxOnStellarExpert": "عرض المعاملة على Stellar Expert"
+    "viewTxOnStellarExpert": "عرض المعاملة على Stellar Expert",
+    "cancelEditNote": "إلغاء تعديل الملاحظة"
   },
   "ledgerErrors": {
     "deviceNotFound": {

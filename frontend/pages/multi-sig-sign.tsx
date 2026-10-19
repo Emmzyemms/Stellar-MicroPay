@@ -40,6 +40,22 @@ export default function MultiSigSignPage() {
     }
   }, [xdr, t]);
 
+  const operations = useMemo(() => {
+    if (!transaction) return [];
+    return transaction.operations.map((op, i) => {
+      let id = `op-${i}-${op.type}`;
+      if (op.type === "payment") {
+        const payment = op as any;
+        id = `payment-${payment.destination || ""}-${payment.amount || ""}-${i}`;
+      }
+      return {
+        id,
+        op,
+        number: i + 1,
+      };
+    });
+  }, [transaction]);
+
   const handleSign = async () => {
     if (!transaction) return;
     setStatus("signing");

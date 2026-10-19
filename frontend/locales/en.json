@@ -292,7 +292,9 @@
     "splitPaymentToggle": "Split payment among multiple recipients",
     "totalPercentError": "Total percentage must equal 100% (currently {percent}%)",
     "transactionSpeed": "Transaction Speed",
-    "useAddress": "Use address"
+    "useAddress": "Use address",
+    "copyTxHash": "Copy transaction hash",
+    "removeRecipient": "Remove recipient"
   },
   "walletHealth": {
     "healthy": "Your account is healthy",
@@ -934,7 +936,8 @@
     "processing": "Processing...",
     "executeMarketOrder": "Execute Market Order",
     "placeBuyOrder": "Place Buy Order",
-    "placeSellOrder": "Place Sell Order"
+    "placeSellOrder": "Place Sell Order",
+    "swapAssets": "Switch assets"
   },
   "turrets": {
     "connectWalletFirst": "Connect your wallet to deploy an automation.",
@@ -1061,7 +1064,8 @@
     "paymentUri": "Payment URI",
     "download": "Download PNG",
     "downloadAria": "Download QR code as PNG",
-    "instructions": "Scan this QR code with Freighter mobile or any Stellar wallet to receive payments."
+    "instructions": "Scan this QR code with Freighter mobile or any Stellar wallet to receive payments.",
+    "closeAria": "Close QR code dialog"
   },
   "quickSend": {
     "dialogLabel": "Quick send payment",
@@ -1171,7 +1175,11 @@
     "searchAria": "Search contacts",
     "emptyState": "No contacts saved yet.",
     "goToContacts": "Go to Contacts",
-    "noResults": "No contacts match “{query}”."
+    "noResults": "No contacts match “{query}”.",
+    "listAria": "Contacts list",
+    "resultsCount": "{count} contacts available",
+    "resultsCountSingle": "{count} contact available",
+    "selectedAnnouncement": "Selected {name}"
   },
   "liveEvents": {
     "typeOpen": "Open",
@@ -1318,7 +1326,8 @@
     "to": "to",
     "tryAgain": "Try again",
     "viewOnStellarExpert": "View on Stellar Expert",
-    "viewTxOnStellarExpert": "View transaction on Stellar Expert"
+    "viewTxOnStellarExpert": "View transaction on Stellar Expert",
+    "cancelEditNote": "Cancel editing note"
   },
   "ledgerErrors": {
     "deviceNotFound": {

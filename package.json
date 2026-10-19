@@ -5,12 +5,14 @@
     "dev": "concurrently -k -n backend,frontend -c green,blue \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install && simple-git-hooks"
   },
   "dependencies": {
     "clsx": "^2.1.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
     "@playwright/test": "^1.59.1",
     "@types/jest": "^29.0.0",
     "@types/node": "^20.0.0",
@@ -21,7 +23,11 @@
     "eslint": "^8.0.0",
     "jest": "^29.0.0",
     "playwright": "^1.59.1",
+    "simple-git-hooks": "^2.14.0",
     "typescript": "^5.0.0"
+  },
+  "simple-git-hooks": {
+    "commit-msg": "npx --no -- commitlint --edit $1"
   },
   "engines": {
     "node": "20.19.5"

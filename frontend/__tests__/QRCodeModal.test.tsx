@@ -70,6 +70,25 @@ describe("QRCodeModal", () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:qr");
   });
+
+  it("provides an accessible name for the close button and marks decorative icons aria-hidden", () => {
+    const onClose = jest.fn();
+    render(
+      <QRCodeModal
+        isOpen
+        onClose={onClose}
+        publicKey="GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
+      />
+    );
+
+    const closeButton = screen.getByRole("button", { name: /close qr code dialog/i });
+    expect(closeButton).toBeInTheDocument();
+    const icon = closeButton.querySelector("svg");
+    expect(icon).toHaveAttribute("aria-hidden", "true");
+
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("QRCodeModal accessibility & keyboard behavior", () => {
