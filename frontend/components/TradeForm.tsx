@@ -13,6 +13,7 @@ import {
   getNetworkPassphrase,
 } from "@/lib/stellar";
 import { useTranslation } from "@/contexts/I18nContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface TradeFormProps {
   publicKey: string;
@@ -23,6 +24,7 @@ interface TradeFormProps {
 
 export default function TradeForm({ publicKey, onTradeComplete, onError, onSuccess }: TradeFormProps) {
   const { t } = useTranslation();
+  const isOnline = useOnlineStatus();
   const [orderType, setOrderType] = useState<"market" | "limit">("market");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [sellingAsset, setSellingAsset] = useState<"XLM" | "USDC">("XLM");
@@ -261,8 +263,9 @@ export default function TradeForm({ publicKey, onTradeComplete, onError, onSucce
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading || !amount || (orderType === "limit" && !price)}
-          className="w-full btn-primary"
+          disabled={isLoading || !amount || (orderType === "limit" && !price) || !isOnline}
+          className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!isOnline ? t("app.offlineActionDisabled") : undefined}
         >
           {isLoading
             ? t("tradeForm.processing")
@@ -272,6 +275,11 @@ export default function TradeForm({ publicKey, onTradeComplete, onError, onSucce
                 ? t("tradeForm.placeBuyOrder")
                 : t("tradeForm.placeSellOrder")}
         </button>
+        {!isOnline && (
+          <p className="mt-2 text-center text-xs text-amber-400">
+            {t("app.offlineActionDisabled")}
+          </p>
+        )}
       </form>
     </div>
   );

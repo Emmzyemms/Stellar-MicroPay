@@ -9,7 +9,7 @@ exports[`QRCodeModal snapshot tests renders with a different sample address 1`] 
   <div
     aria-labelledby="qr-code-modal-title"
     aria-modal="true"
-    class="card max-w-md w-full animate-slide-up outline-none"
+    class="card max-w-md w-full animate-slide-up"
     role="dialog"
     tabindex="-1"
   >
@@ -133,7 +133,7 @@ exports[`QRCodeModal snapshot tests renders with sample address (no amount) 1`] 
   <div
     aria-labelledby="qr-code-modal-title"
     aria-modal="true"
-    class="card max-w-md w-full animate-slide-up outline-none"
+    class="card max-w-md w-full animate-slide-up"
     role="dialog"
     tabindex="-1"
   >
@@ -257,7 +257,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and amount 1`] =
   <div
     aria-labelledby="qr-code-modal-title"
     aria-modal="true"
-    class="card max-w-md w-full animate-slide-up outline-none"
+    class="card max-w-md w-full animate-slide-up"
     role="dialog"
     tabindex="-1"
   >
@@ -381,7 +381,7 @@ exports[`QRCodeModal snapshot tests renders with sample address and zero amount 
   <div
     aria-labelledby="qr-code-modal-title"
     aria-modal="true"
-    class="card max-w-md w-full animate-slide-up outline-none"
+    class="card max-w-md w-full animate-slide-up"
     role="dialog"
     tabindex="-1"
   >

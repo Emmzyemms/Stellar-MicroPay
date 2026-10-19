@@ -50,6 +50,7 @@ import {
   shortenAddress,
 } from "@/utils/intlFormatters";
 import { useTranslation } from "@/contexts/I18nContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 
@@ -98,7 +99,6 @@ type FavouriteEntry = {
 };
 
 const ESTIMATED_NETWORK_FEE = `${STELLAR_BASE_FEE_XLM} XLM`;
-const XLM_USD_RATE = 0.11;
 const FAVOURITES_STORAGE_KEY = "stellar-micropay:favourites";
 
 interface BarcodeDetectorResult {
@@ -140,6 +140,7 @@ export default function SendPaymentForm({
   hideMemoField = false,
 }: SendPaymentFormProps) {
   const { t } = useTranslation();
+  const isOnline = useOnlineStatus();
   const [selectedAsset, setSelectedAsset] = useState<AssetType>("XLM");
   const [networkFeeXlm, setNetworkFeeXlm] = useState(STELLAR_BASE_FEE_XLM);
   const [feeStatus, setFeeStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -526,7 +527,7 @@ export default function SendPaymentForm({
   const balance = selectedAsset === "XLM" ? xlmBal : usdcBal;
   const maxSend =
     selectedAsset === "XLM"
-      ? Math.max(0, xlmBal - STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM - networkFeeXlm)
+      ? Math.max(0, xlmBal - STELLAR_MINIMUM_ACCOUNT_BALANCE_XLM)
       : usdcBal;
 
   const isUsernameDestination = /^@?[a-zA-Z0-9]{3,20}$/.test(destination) && !isValidStellarAddress(destination);
@@ -1490,8 +1491,9 @@ export default function SendPaymentForm({
 
         <button
           onClick={openConfirmation}
-          disabled={!canSubmit || status !== "idle"}
-          className="btn-primary w-full flex items-center justify-center gap-2"
+          disabled={!canSubmit || status !== "idle" || !isOnline}
+          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!isOnline ? t("app.offlineActionDisabled") : undefined}
         >
           {status === "idle"
             ? t("sendPayment.sendWithAmount", {
@@ -1500,6 +1502,11 @@ export default function SendPaymentForm({
               })
             : t("sendPayment.processing")}
         </button>
+        {!isOnline && (
+          <p className="mt-2 text-center text-xs text-amber-400">
+            {t("app.offlineActionDisabled")}
+          </p>
+        )}
       </div>
     </div>
 
@@ -1507,10 +1514,10 @@ export default function SendPaymentForm({
         isOpen={isConfirmOpen}
         destination={destination}
         amount={amountNum}
+        asset={selectedAsset}
         memo={memo}
         memoType={memoType}
         estimatedFee={ESTIMATED_NETWORK_FEE}
-        usdValue={amountNum * XLM_USD_RATE}
         isTipOnChain={isTipOnChain}
         onCancel={() => setIsConfirmOpen(false)}
         onConfirm={() => { setIsConfirmOpen(false); executeSend(); }}
@@ -1647,6 +1654,7 @@ interface SendConfirmationModalProps {
   isOpen: boolean;
   destination: string;
   amount: number;
+  asset: string;
   memo: string;
   memoType: StellarMemoType;
   estimatedFee: string;

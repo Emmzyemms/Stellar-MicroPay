@@ -582,7 +582,8 @@
     "installBody": "Adicione à tela de início para acesso rápido e suporte offline",
     "installTitle": "Instalar o MicroPay",
     "notNow": "Agora não",
-    "offlineBanner": "Você está offline — os dados podem não estar atualizados."
+    "offlineActionDisabled": "Pagamentos e negociações estão desativados enquanto estiver offline",
+    "offlineBanner": "Você está offline — os saldos podem estar desatualizados e os pagamentos estão desativados"
   },
   "issueToken": {
     "amountIssued": "Valor emitido",
@@ -1157,7 +1158,10 @@
     "empty": "Nenhum pagamento recorrente ainda. Crie um agendamento para enviar XLM automaticamente.",
     "due": "A vencer",
     "payNow": "Pagar agora",
-    "deleteSchedule": "Excluir agendamento"
+    "deleteSchedule": "Excluir agendamento",
+    "nextRun": "Próxima execução",
+    "invalidRecipient": "Insira um endereço de destinatário Stellar válido",
+    "invalidAmount": "Insira um valor válido maior que zero"
   },
   "contactPicker": {
     "ariaLabel": "Agenda de endereços",

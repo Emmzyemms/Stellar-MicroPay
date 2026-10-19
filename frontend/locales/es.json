@@ -582,7 +582,8 @@
     "installBody": "Añade a tu pantalla de inicio para acceso rápido y soporte sin conexión",
     "installTitle": "Instalar MicroPay",
     "notNow": "Ahora no",
-    "offlineBanner": "Estás sin conexión — los datos pueden no estar actualizados."
+    "offlineActionDisabled": "Los pagos y las operaciones están deshabilitados mientras estás sin conexión",
+    "offlineBanner": "Estás sin conexión — los saldos pueden no estar actualizados y los pagos están deshabilitados"
   },
   "issueToken": {
     "amountIssued": "Cantidad emitida",
@@ -1157,7 +1158,10 @@
     "empty": "Aún no hay pagos recurrentes. Crea una programación para enviar XLM automáticamente.",
     "due": "Vence",
     "payNow": "Pagar ahora",
-    "deleteSchedule": "Eliminar programación"
+    "deleteSchedule": "Eliminar programación",
+    "nextRun": "Próxima ejecución",
+    "invalidRecipient": "Introduce una dirección de destinatario de Stellar válida",
+    "invalidAmount": "Introduce un importe válido mayor que cero"
   },
   "contactPicker": {
     "ariaLabel": "Libreta de direcciones",

@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "@/contexts/I18nContext";
+import { formatDate } from "@/utils/intlFormatters";
 
 export interface RecurringPayment {
   id: string;
@@ -63,6 +64,8 @@ export default function RecurringPayments({
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [interval, setInterval] = useState<RecurringPayment["interval"]>("monthly");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     setSchedules(loadSchedules());
@@ -75,13 +78,25 @@ export default function RecurringPayments({
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!destination.trim() || !amount.trim() || Number.isNaN(parseFloat(amount))) return;
+
+    const trimmedDestination = destination.trim();
+    const trimmedAmount = amount.trim();
+    const parsedAmount = parseFloat(trimmedAmount);
+
+    if (!trimmedDestination) {
+      setFormError(t("recurringPayments.invalidRecipient"));
+      return;
+    }
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setFormError(t("recurringPayments.invalidAmount"));
+      return;
+    }
 
     const now = Date.now();
     const schedule: RecurringPayment = {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
-      destination: destination.trim(),
-      amount: amount.trim(),
+      destination: trimmedDestination,
+      amount: trimmedAmount,
       memo: memo.trim(),
       interval,
       nextRunAt: now + INTERVAL_MS[interval],
@@ -92,11 +107,13 @@ export default function RecurringPayments({
     setAmount("");
     setMemo("");
     setInterval("monthly");
+    setFormError(null);
     setIsFormOpen(false);
   };
 
   const handleDelete = (id: string) => {
     persist(schedules.filter((schedule) => schedule.id !== id));
+    setPendingDeleteId(null);
   };
 
   const handlePayNow = (schedule: RecurringPayment) => {
@@ -113,7 +130,10 @@ export default function RecurringPayments({
         <h2 className="font-display text-lg font-semibold text-white">{t("recurringPayments.title")}</h2>
         <button
           type="button"
-          onClick={() => setIsFormOpen((open) => !open)}
+          onClick={() => {
+            setIsFormOpen((open) => !open);
+            setFormError(null);
+          }}
           className="text-xs text-stellar-400 hover:text-stellar-300 transition-colors cursor-pointer"
         >
           {isFormOpen ? t("common.cancel") : <>+ {t("recurringPayments.new")}</>}
@@ -160,6 +180,7 @@ export default function RecurringPayments({
             className="input-field text-sm"
             maxLength={28}
           />
+          {formError && <p className="text-xs text-red-400">{formError}</p>}
           <button type="submit" className="btn-primary w-full text-sm">
             {t("recurringPayments.saveSchedule")}
           </button>
@@ -190,6 +211,9 @@ export default function RecurringPayments({
                       )}
                     </p>
                     <p className="truncate font-mono text-xs text-slate-500">{schedule.destination}</p>
+                    <p className="text-xs text-slate-500">
+                      {t("recurringPayments.nextRun")}: {formatDate(schedule.nextRunAt)}
+                    </p>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-2">
                     <button
@@ -199,14 +223,33 @@ export default function RecurringPayments({
                     >
                       {t("recurringPayments.payNow")}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(schedule.id)}
-                      aria-label={t("recurringPayments.deleteSchedule")}
-                      className="px-1.5 text-red-400 hover:text-red-300 cursor-pointer"
-                    >
-                      ×
-                    </button>
+                    {pendingDeleteId === schedule.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(schedule.id)}
+                          className="rounded-lg bg-red-500/20 px-2.5 py-1 text-xs font-semibold text-red-300 hover:bg-red-500/30 transition-colors cursor-pointer"
+                        >
+                          {t("common.confirm")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDeleteId(null)}
+                          className="rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-300 hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPendingDeleteId(schedule.id)}
+                        aria-label={t("recurringPayments.deleteSchedule")}
+                        className="px-1.5 text-red-400 hover:text-red-300 cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 </div>
               </li>

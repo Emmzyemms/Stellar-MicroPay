@@ -14,7 +14,8 @@ import RouteAnnouncer from "@/components/RouteAnnouncer";
 import { WalletProvider, useWallet } from "@/lib/useWallet";
 import ToastProvider from "@/lib/ToastContext";
 import ServiceWorkerUpdateToast from "@/components/ServiceWorkerUpdateToast";
-import { useTranslation } from "@/contexts/I18nContext";
+import OfflineBanner from "@/components/OfflineBanner";
+import { I18nProvider, useTranslation } from "@/contexts/I18nContext";
 
 const AIPaymentAssistant = dynamic(() => import("@/components/AIPaymentAssistant"), {
   ssr: false,
@@ -141,17 +142,6 @@ function AppShell({
   const { t } = useTranslation();
   const router = useRouter();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-  const [isOffline, setIsOffline] = useState(false);
-  useEffect(() => {
-    const updateOffline = () => setIsOffline(!navigator.onLine);
-    updateOffline();
-    window.addEventListener("online", updateOffline);
-    window.addEventListener("offline", updateOffline);
-    return () => {
-      window.removeEventListener("online", updateOffline);
-      window.removeEventListener("offline", updateOffline);
-    };
-  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -181,9 +171,7 @@ function AppShell({
 
   return (
     <>
-      {isOffline && (
-        <div role="alert" className="w-full bg-amber-500/15 px-4 py-2 text-center text-sm text-amber-200">{t("app.offlineBanner")}</div>
-      )}
+      <OfflineBanner />
       <div className="min-h-screen bg-white bg-grid transition-colors duration-300 dark:bg-cosmos-900">
         <Navbar onOpenAssistant={() => setIsAssistantOpen(true)} />
         <main>

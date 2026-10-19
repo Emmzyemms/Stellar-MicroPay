@@ -31,6 +31,9 @@ const turretsRoutes = require("./routes/turrets");
 const tipsRoutes = require("./routes/tips");
 const pushRoutes = require("./routes/push");
 const webhooksRoutes = require("./routes/webhooks");
+const contactsRoutes = require("./routes/contacts");
+const networkRoutes = require("./routes/network");
+const priceAlertsRoutes = require("./routes/priceAlerts");
 const requestId = require("./middleware/requestId");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
@@ -41,20 +44,6 @@ const { sanitizeRequest } = require("./middleware/sanitization");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-/**
- * Attach a correlation id to every request: echo the caller's X-Request-ID
- * when supplied, otherwise generate one. The id is echoed back on the
- * response and available to pino-http and the error handler.
- */
-function requestId(req, res, next) {
-  const supplied = req.headers["x-request-id"];
-  req.requestId =
-    typeof supplied === "string" && supplied.trim()
-      ? supplied.trim()
-      : crypto.randomUUID();
-  res.setHeader("X-Request-ID", req.requestId);
-  next();
-}
 // ─── Middleware ─────────────────────────────────────────────────────────────────
 
 app.use(requestId);
@@ -102,8 +91,9 @@ app.use(
       "Authorization",
       "X-Request-ID",
       "X-Idempotency-Key",
+      "X-CSRF-Token",
     ],
-    exposedHeaders: ["X-Request-ID", "X-Idempotency-Replayed"],
+    exposedHeaders: ["X-Request-ID", "X-Idempotency-Replayed", "X-CSRF-Token"],
     credentials: true,
     optionsSuccessStatus: 204,
     maxAge: 600,

@@ -24,6 +24,7 @@ import { isReceiptEligible } from "@/lib/receipts";
 import { useTranslation } from "@/contexts/I18nContext";
 import Toast from "@/components/Toast";
 import clsx from "clsx";
+import { AssetBadge } from "@/components/AssetBadge";
 
 export type TransactionDirectionFilter = "all" | "sent" | "received";
 

@@ -582,7 +582,8 @@
     "installBody": "Add to your home screen for quick access and offline support",
     "installTitle": "Install MicroPay",
     "notNow": "Not Now",
-    "offlineBanner": "You're offline — data may not be up to date."
+    "offlineActionDisabled": "Payments and trades are disabled while offline",
+    "offlineBanner": "You're offline — balances may be stale and payments are disabled"
   },
   "issueToken": {
     "amountIssued": "Amount issued",
@@ -1157,7 +1158,10 @@
     "empty": "No recurring payments yet. Create a schedule to send XLM automatically.",
     "due": "Due",
     "payNow": "Pay Now",
-    "deleteSchedule": "Delete schedule"
+    "deleteSchedule": "Delete schedule",
+    "nextRun": "Next run",
+    "invalidRecipient": "Enter a valid Stellar recipient address",
+    "invalidAmount": "Enter a valid amount greater than zero"
   },
   "contactPicker": {
     "ariaLabel": "Address book",

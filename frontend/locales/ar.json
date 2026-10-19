@@ -582,7 +582,8 @@
     "installBody": "أضِفه إلى شاشتك الرئيسية للوصول السريع والعمل دون اتصال",
     "installTitle": "تثبيت MicroPay",
     "notNow": "ليس الآن",
-    "offlineBanner": "أنت غير متصل — قد لا تكون البيانات محدّثة."
+    "offlineActionDisabled": "المدفوعات والتداولات معطلة أثناء عدم الاتصال",
+    "offlineBanner": "أنت غير متصل — قد لا تكون الأرصدة محدثة والمدفوعات معطلة"
   },
   "issueToken": {
     "amountIssued": "المبلغ المُصدر",
@@ -1157,7 +1158,10 @@
     "empty": "لا توجد مدفوعات متكررة بعد. أنشئ جدولًا لإرسال XLM تلقائيًا.",
     "due": "مستحق",
     "payNow": "ادفع الآن",
-    "deleteSchedule": "حذف الجدول"
+    "deleteSchedule": "حذف الجدول",
+    "nextRun": "التشغيل القادم",
+    "invalidRecipient": "أدخل عنوان مستلم صالحًا على Stellar",
+    "invalidAmount": "أدخل مبلغًا صالحًا أكبر من صفر"
   },
   "contactPicker": {
     "ariaLabel": "دفتر العناوين",

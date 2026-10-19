@@ -9,7 +9,7 @@ exports[`PaymentStatusModal snapshot tests renders failure state with error 1`] 
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -306,7 +306,7 @@ exports[`PaymentStatusModal snapshot tests renders failure state with generic er
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -613,7 +613,7 @@ exports[`PaymentStatusModal snapshot tests renders idle state 1`] = `
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -914,7 +914,7 @@ exports[`PaymentStatusModal snapshot tests renders pending state (building) 1`] 
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -1233,7 +1233,7 @@ exports[`PaymentStatusModal snapshot tests renders pending state (confirming) 1`
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -1537,7 +1537,7 @@ exports[`PaymentStatusModal snapshot tests renders pending state (signing) 1`] =
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -1851,7 +1851,7 @@ exports[`PaymentStatusModal snapshot tests renders pending state (submitting) 1`
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >
@@ -2160,7 +2160,7 @@ exports[`PaymentStatusModal snapshot tests renders success state 1`] = `
   <div
     aria-labelledby="payment-status-title"
     aria-modal="true"
-    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl outline-none"
+    class="w-full max-w-xl overflow-hidden rounded-3xl border border-white/10 bg-slate-900/95 shadow-2xl"
     role="dialog"
     tabindex="-1"
   >

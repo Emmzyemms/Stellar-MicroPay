@@ -20,6 +20,7 @@ import {
   formatPercent,
 } from "@/utils/intlFormatters";
 import { useTranslation } from "@/contexts/I18nContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const DEFAULT_SLIPPAGE_BPS = 50; // 0.50%
 const SLIPPAGE_OPTIONS = [25, 50, 100, 200]; // basis points
@@ -49,6 +50,7 @@ export default function SwapForm({
   onSuccess,
 }: SwapFormProps) {
   const { t } = useTranslation();
+  const isOnline = useOnlineStatus();
   const [sellAsset, setSellAsset] = useState<"XLM" | "USDC">("XLM");
   const [buyAsset, setBuyAsset] = useState<"XLM" | "USDC">("USDC");
   const [sellAmount, setSellAmount] = useState("");
@@ -299,11 +301,21 @@ export default function SwapForm({
 
         {quoteError && <p className="text-sm text-red-400">{quoteError}</p>}
 
-        <button type="submit" disabled={!canSubmit} className="btn-primary w-full">
+        <button
+          type="submit"
+          disabled={!canSubmit || !isOnline}
+          className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          title={!isOnline ? t("app.offlineActionDisabled") : undefined}
+        >
           {isSubmitting
             ? t("swap.swapping")
             : t("swap.action", { from: sellAsset, to: buyAsset })}
         </button>
+        {!isOnline && (
+          <p className="mt-2 text-center text-xs text-amber-400">
+            {t("app.offlineActionDisabled")}
+          </p>
+        )}
       </form>
     </div>
   );

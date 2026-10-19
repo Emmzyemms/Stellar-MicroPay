@@ -582,7 +582,8 @@
     "installBody": "Ajoute à ton écran d’accueil pour un accès rapide et un mode hors ligne",
     "installTitle": "Installer MicroPay",
     "notNow": "Pas maintenant",
-    "offlineBanner": "Tu es hors ligne — les données peuvent ne pas être à jour."
+    "offlineActionDisabled": "Les paiements et transactions sont désactivés hors ligne",
+    "offlineBanner": "Tu es hors ligne — les soldes peuvent être obsolètes et les paiements sont désactivés"
   },
   "issueToken": {
     "amountIssued": "Montant émis",
@@ -1157,7 +1158,10 @@
     "empty": "Aucun paiement récurrent pour le moment. Crée une planification pour envoyer des XLM automatiquement.",
     "due": "Dû",
     "payNow": "Payer maintenant",
-    "deleteSchedule": "Supprimer la planification"
+    "deleteSchedule": "Supprimer la planification",
+    "nextRun": "Prochaine exécution",
+    "invalidRecipient": "Saisis une adresse de destinataire Stellar valide",
+    "invalidAmount": "Saisis un montant valide supérieur à zéro"
   },
   "contactPicker": {
     "ariaLabel": "Carnet d’adresses",

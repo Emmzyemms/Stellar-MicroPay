@@ -11,10 +11,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import Modal from "@/components/Modal";
 import { loadContacts, type Contact } from "@/lib/contacts";
 import { shortenAddress } from "@/lib/stellar";
 import { useTranslation } from "@/contexts/I18nContext";
-import { useModalFocusTrap } from "@/hooks/useModalFocusTrap";
 
 interface ContactPickerModalProps {
   readonly isOpen: boolean;
@@ -30,7 +30,6 @@ export default function ContactPickerModal({
   const { t } = useTranslation();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [query, setQuery] = useState("");
-  const modalRef = useModalFocusTrap<HTMLDivElement>({ isOpen, onClose });
 
   // Load contacts each time the modal opens so newly saved contacts appear.
   useEffect(() => {
@@ -52,9 +51,43 @@ export default function ContactPickerModal({
 
   if (!isOpen) return null;
 
-  const renderContent = () => {
-    if (contacts.length === 0) {
-      return (
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      overlayClassName="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      panelClassName="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl"
+      ariaLabel={t("contactPicker.ariaLabel")}
+      backdropTestId="contact-picker-modal"
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-display text-xl font-bold text-white">
+          {t("contactPicker.title")}
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t("contactPicker.closeAria")}
+          data-testid="contact-picker-close"
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
+        >
+          <CloseIcon className="h-5 w-5" />
+        </button>
+      </div>
+
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder={t("contactPicker.searchPlaceholder")}
+        aria-label={t("contactPicker.searchAria")}
+        data-testid="contact-picker-search"
+        className="input-field mb-4"
+        autoFocus
+      />
+
+      {contacts.length === 0 ? (
         <div className="py-10 text-center" data-testid="contact-picker-empty">
           <ContactsIcon className="mx-auto mb-3 h-12 w-12 text-slate-600" />
           <p className="text-slate-400">{t("contactPicker.emptyState")}</p>
@@ -67,90 +100,37 @@ export default function ContactPickerModal({
             <ArrowRightIcon className="h-4 w-4" />
           </Link>
         </div>
-      );
-    }
-
-    if (filtered.length === 0) {
-      return (
+      ) : filtered.length === 0 ? (
         <div className="py-10 text-center" data-testid="contact-picker-no-results">
           <p className="text-slate-400">
             {t("contactPicker.noResults", { query })}
           </p>
         </div>
-      );
-    }
-
-    return (
-      <ul className="max-h-72 space-y-1 overflow-y-auto" data-testid="contact-picker-list">
-        {filtered.map((contact) => (
-          <li key={contact.id}>
-            <button
-              type="button"
-              onClick={() => onSelect(contact)}
-              data-testid="contact-picker-option"
-              className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5 transition-colors"
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-white">
-                  {contact.name}
+      ) : (
+        <ul className="max-h-72 space-y-1 overflow-y-auto" data-testid="contact-picker-list">
+          {filtered.map((contact) => (
+            <li key={contact.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(contact)}
+                data-testid="contact-picker-option"
+                className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5 transition-colors"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-white">
+                    {contact.name}
+                  </span>
+                  <span className="block font-mono text-xs text-slate-500">
+                    {shortenAddress(contact.address, 8)}
+                  </span>
                 </span>
-                <span className="block font-mono text-xs text-slate-500">
-                  {shortenAddress(contact.address, 8)}
-                </span>
-              </span>
-              <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-600" />
-            </button>
-          </li>
-        ))}
-      </ul>
-    );
-  };
-
-  return (
-    <div
-      ref={modalRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 outline-none"
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("contactPicker.ariaLabel")}
-      tabIndex={-1}
-      data-testid="contact-picker-modal"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-display text-xl font-bold text-white">
-            {t("contactPicker.title")}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={t("contactPicker.closeAria")}
-            data-testid="contact-picker-close"
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white transition-colors"
-          >
-            <CloseIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("contactPicker.searchPlaceholder")}
-          aria-label={t("contactPicker.searchAria")}
-          data-testid="contact-picker-search"
-          className="input-field mb-4"
-          autoFocus
-        />
-
-        {renderContent()}
-      </div>
-    </div>
+                <ArrowRightIcon className="h-4 w-4 shrink-0 text-slate-600" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
   );
 }
 

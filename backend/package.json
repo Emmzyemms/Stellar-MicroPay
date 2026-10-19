@@ -57,9 +57,19 @@
     ],
     "testEnvironment": "node",
     "testPathIgnorePatterns": [
-      "<rootDir>/__tests__/.*\\.ts$"
+      "<rootDir>/__tests__/(?!payment\\.service\\.spec).*\\.ts$"
     ],
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/tsconfig.json",
+          "diagnostics": false
+        }
+      ]
+    },
     "moduleNameMapper": {
+      "^@nestjs/common$": "<rootDir>/__mocks__/@nestjs/common.ts",
       "^@exodus/bytes/base32\\.js$": "<rootDir>/__mocks__/exodus-bytes-base32.js",
       "^uint8array-extras$": "<rootDir>/__mocks__/uint8array-extras.js",
       "^@noble/hashes/(.*)$": "<rootDir>/node_modules/@noble/hashes/$1",
