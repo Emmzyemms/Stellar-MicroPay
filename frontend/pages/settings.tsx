@@ -8,6 +8,7 @@ import Head from "next/head";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { getNetworkConfig, setNetworkConfig, NetworkConfig } from "@/lib/stellar";
+import { apiDelete, apiGet, apiPost } from "@/lib/paymentApi";
 import { disconnectWallet } from "@/lib/wallet";
 import { shortenAddress } from "@/lib/stellar";
 import { useWallet } from "@/lib/useWallet";
@@ -72,14 +73,12 @@ export default function SettingsPage() {
     const fetchPriceAlerts = async () => {
       if (!publicKey) return;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
       try {
-        const response = await fetch(`${apiBase}/api/price-alerts?publicKey=${publicKey}`);
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload?.success && Array.isArray(payload?.data)) {
-            setPriceAlerts(payload.data);
-          }
+        const data = await apiGet<typeof priceAlerts>("/api/price-alerts", {
+          query: { publicKey },
+        });
+        if (Array.isArray(data)) {
+          setPriceAlerts(data);
         }
       } catch (err) {
         console.error("Failed to fetch price alerts:", err);
@@ -98,29 +97,21 @@ export default function SettingsPage() {
     setPriceAlertError(null);
     setPriceAlertSuccess(null);
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
     try {
-      const response = await fetch(`${apiBase}/api/price-alerts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const created = await apiPost<(typeof priceAlerts)[number]>(
+        "/api/price-alerts",
+        {
           publicKey,
           asset: priceAlertForm.asset,
           direction: priceAlertForm.direction,
           targetPrice: parseFloat(priceAlertForm.targetPrice),
-        }),
-      });
+        },
+        { fallbackMessage: t("settings.priceAlert.createFailed") }
+      );
 
-      if (!response.ok) {
-        throw new Error(t("settings.priceAlert.createFailed"));
-      }
-
-      const payload = await response.json();
-      if (payload?.success) {
-        setPriceAlerts([...priceAlerts, payload.data]);
-        setPriceAlertForm({ asset: "XLM", direction: "above", targetPrice: "" });
-        setPriceAlertSuccess(t("settings.priceAlert.created"));
-      }
+      setPriceAlerts([...priceAlerts, created]);
+      setPriceAlertForm({ asset: "XLM", direction: "above", targetPrice: "" });
+      setPriceAlertSuccess(t("settings.priceAlert.created"));
     } catch (err) {
       console.error("Failed to create price alert:", err);
       setPriceAlertError(err instanceof Error ? err.message : t("settings.priceAlert.createFailed"));
@@ -131,15 +122,9 @@ export default function SettingsPage() {
 
   // Handle price alert deletion
   const handleDeletePriceAlert = async (id: number) => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
     try {
-      const response = await fetch(`${apiBase}/api/price-alerts/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setPriceAlerts(priceAlerts.filter((a) => a.id !== id));
-      }
+      await apiDelete(`/api/price-alerts/${id}`);
+      setPriceAlerts(priceAlerts.filter((a) => a.id !== id));
     } catch (err) {
       console.error("Failed to delete price alert:", err);
     }
@@ -150,16 +135,12 @@ export default function SettingsPage() {
     const fetchUsername = async () => {
       if (!publicKey) return;
 
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
       try {
-        const response = await fetch(
-          `${apiBase}/api/accounts/resolve/${encodeURIComponent(publicKey)}`
+        const data = await apiGet<{ username?: string }>(
+          `/api/accounts/resolve/${encodeURIComponent(publicKey)}`
         );
-        if (response.ok) {
-          const payload = await response.json();
-          if (payload?.success && payload?.data?.username) {
-            setRegisteredUsername(payload.data.username);
-          }
+        if (data?.username) {
+          setRegisteredUsername(data.username);
         }
       } catch (err) {
         console.error("Error fetching username:", err);
@@ -258,21 +239,14 @@ export default function SettingsPage() {
     setUsernameSuccess(null);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "";
-      const response = await fetch(`${apiBase}/api/accounts/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await apiPost(
+        "/api/accounts/register",
+        {
           username: username.trim().toLowerCase(),
           publicKey,
-        }),
-      });
-
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload?.error || t("settings.username.errorGeneric"));
-      }
+        },
+        { fallbackMessage: t("settings.username.errorGeneric") }
+      );
 
       setRegisteredUsername(username.trim().toLowerCase());
       setUsernameSuccess(
