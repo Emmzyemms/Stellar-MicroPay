@@ -17,28 +17,28 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import Head from "next/head";
-import FloatingAssistantButton from "../components/FloatingAssistantButton";
+import FloatingAssistantButton from "@/components/FloatingAssistantButton";
 
 // Dynamic imports for large components to improve initial load (Lighthouse Performance)
-const PaymentLinkGenerator = dynamic(() => import("../components/PaymentLinkGenerator"), { ssr: false });
-const WalletConnect = dynamic(() => import("../components/WalletConnect"), { ssr: false });
-const SendPaymentForm = dynamic(() => import("../components/SendPaymentForm"), { ssr: false });
-const TransactionList = dynamic(() => import("../components/TransactionList"), { ssr: false });
-const MultiSigFlow = dynamic(() => import("../components/MultiSigFlow"), {
+const PaymentLinkGenerator = dynamic(() => import("@/components/PaymentLinkGenerator"), { ssr: false });
+const WalletConnect = dynamic(() => import("@/components/WalletConnect"), { ssr: false });
+const SendPaymentForm = dynamic(() => import("@/components/SendPaymentForm"), { ssr: false });
+const TransactionList = dynamic(() => import("@/components/TransactionList"), { ssr: false });
+const MultiSigFlow = dynamic(() => import("@/components/MultiSigFlow"), {
   ssr: false,
   loading: () => <MultiSigLoading />,
 });
-const OnboardingTour = dynamic(() => import("../components/OnboardingTour"), { ssr: false });
-const BatchPaymentForm = dynamic(() => import("../components/BatchPaymentForm"), { ssr: false });
-const QRCodeModal = dynamic(() => import("../components/QRCodeModal"), { ssr: false });
-const CreatorTipsDashboard = dynamic(() => import("../components/CreatorTipsDashboard"), { ssr: false });
-const RecurringPayments = dynamic(() => import("../components/RecurringPayments"), { ssr: false });
-const LiveEventsFeed = dynamic(() => import("../components/LiveEventsFeed"), { ssr: false });
+const OnboardingTour = dynamic(() => import("@/components/OnboardingTour"), { ssr: false });
+const BatchPaymentForm = dynamic(() => import("@/components/BatchPaymentForm"), { ssr: false });
+const QRCodeModal = dynamic(() => import("@/components/QRCodeModal"), { ssr: false });
+const CreatorTipsDashboard = dynamic(() => import("@/components/CreatorTipsDashboard"), { ssr: false });
+const RecurringPayments = dynamic(() => import("@/components/RecurringPayments"), { ssr: false });
+const LiveEventsFeed = dynamic(() => import("@/components/LiveEventsFeed"), { ssr: false });
 
 // The assistant panel (and its dependencies) should not ship in the initial
 // bundle — it's only ever needed after the user opens the floating button,
 // so it's loaded on demand with a visible loading state (#610).
-const AIPaymentAssistant = dynamic(() => import("../components/AIPaymentAssistant"), {
+const AIPaymentAssistant = dynamic(() => import("@/components/AIPaymentAssistant"), {
   ssr: false,
   loading: () => <AiAssistantLoading />,
 });

@@ -145,6 +145,22 @@ Example:
 git checkout -b feature/qr-code-payments
 ```
 
+### Import convention (frontend)
+
+In `frontend/`, always import internal modules through the `@/` alias instead of climbing directories with `../`. The alias maps to the `frontend/` root and is configured in `tsconfig.json` (`"paths": { "@/*": ["./*"] }`) and mirrored for Jest in `jest.config.ts` (`moduleNameMapper`). Next.js reads `tsconfig.json` paths itself, so `next.config.mjs` needs no extra webpack alias.
+
+```ts
+// ✗ avoid
+import { getNetworkPassphrase } from "../../lib/stellar";
+
+// ✓ prefer
+import { getNetworkPassphrase } from "@/lib/stellar";
+import Toast from "@/components/Toast";
+import { formatXLM } from "@/utils/intlFormatters";
+```
+
+Same-directory imports (`./sibling`) are fine. An ESLint rule (`no-restricted-imports` in `frontend/eslint.config.mjs`) warns on `../` imports, and `npm run lint` fails on warnings.
+
 ### Commit message style
 
 We use [Conventional Commits](https://www.conventionalcommits.org/), enforced locally by [commitlint](https://commitlint.js.org/) (`@commitlint/config-conventional`, configured in [`commitlint.config.js`](commitlint.config.js)) running on the `commit-msg` hook via [simple-git-hooks](https://github.com/toplenboren/simple-git-hooks). The hook is installed automatically by `npm install` (through the `prepare` script), and commits that don't follow the format are rejected.

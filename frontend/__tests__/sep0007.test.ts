@@ -1,4 +1,4 @@
-import { parseStellarURI, uriToPrefillData } from '../lib/sep0007';
+import { parseStellarURI, uriToPrefillData } from '@/lib/sep0007';
 
 const VALID_DESTINATION = 'GB5XVAABEQMY63WTHDQ5RXADGYF345VWMNPTN2GFUDZT57D57ZQTJ7PS';
 

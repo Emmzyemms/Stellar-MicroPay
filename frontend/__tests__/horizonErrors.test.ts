@@ -2,7 +2,7 @@ import {
   extractHorizonResultCodes,
   formatHorizonResultCodes,
   parseHorizonSubmissionError,
-} from '../lib/horizonErrors';
+} from '@/lib/horizonErrors';
 
 function horizonError(resultCodes: Record<string, unknown>) {
   return {

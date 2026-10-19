@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Transaction } from "@stellar/stellar-sdk";
-import { getNetworkPassphrase } from "../lib/stellar";
+import { getNetworkPassphrase } from "@/lib/stellar";
 // Helper to extract signature hints (last 4 bytes of public key) from signed XDRs
 function getSignerHints(unsignedXDR: string, signedXDRs: string[]): string[] {
   try {
@@ -28,9 +28,9 @@ import {
   collectSignatures,
   submitTransaction,
   isValidStellarAddress,
-} from "../lib/stellar";
-import { signTransactionWithWallet } from "../lib/wallet";
-import { formatXLM } from "../utils/intlFormatters";
+} from "@/lib/stellar";
+import { signTransactionWithWallet } from "@/lib/wallet";
+import { formatXLM } from "@/utils/intlFormatters";
 import { useTranslation } from "@/contexts/I18nContext";
 
 interface MultiSigFlowProps {

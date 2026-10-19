@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import MultiSigFlow from '../components/MultiSigFlow';
+import MultiSigFlow from '@/components/MultiSigFlow';
 
 jest.mock('@/lib/stellar', () => ({
   buildPaymentTransaction: jest.fn(),
