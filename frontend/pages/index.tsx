@@ -135,7 +135,7 @@ export default function Home() {
               </button>
             )}
             <a
-              href="https://github.com/your-org/stellar-micropay"
+              href="https://github.com/Emmy123222/Stellar-MicroPay"
               target="_blank"
               rel="noopener noreferrer"
               aria-label={t("landing.viewSourceAria")}
